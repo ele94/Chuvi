@@ -1,0 +1,331 @@
+---
+title: "Corrección de datos"
+output: html_notebook
+---
+
+Tratando los NAs
+---
+
+Tiempo inicio-último seguimiento
+---
+
+Podemos sustituirlo por la media, aunque eso no es la solución ideal
+
+
+```{r}
+Tiempo.medio = mean(chuvi$Tiempo.inicio.ultimo.seguimiento, na.rm=T)
+chuvi$Tiempo.inicio.ultimo.seguimiento.fix = ifelse(is.na(chuvi$Tiempo.inicio.ultimo.seguimiento), Tiempo.medio, chuvi$Tiempo.inicio.ultimo.seguimiento)
+summary(chuvi$Tiempo.inicio.ultimo.seguimiento.fix)
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi) +
+geom_histogram(aes(x=Tiempo.inicio.ultimo.seguimiento.fix),
+binwidth=10, fill="gray")
+
+library(ggplot2)
+library(scales)
+ggplot(chuvi) + geom_density(aes(x=Tiempo.inicio.ultimo.seguimiento.fix)) +
+scale_x_continuous(labels=time)
+```
+
+Decididamente no es la solución más ideal, pero hasta que le pregunte a la profe cómo puedo arreglarlos de forma que dependan de otros datos, podemos dejarlo así. 
+
+
+
+Estímulos
+---
+
+Podemos asumir que todos los que faltan son ceros
+
+ATENCIÓN: hemos sustituido los valores de VA Y MA Y VD Y VI Y TODOS ESOS por ceros PERO EN REALIDAD NO PODRÍA. 
+
+```{r}
+chuvi$STIMA.fix = ifelse(is.na(chuvi$STIMA),0,chuvi$STIMA)
+summary(chuvi$STIMA.fix)
+```
+
+```{r}
+chuvi$MSA.fix = ifelse(is.na(chuvi$MSA),0,chuvi$MSA)
+summary(chuvi$MSA.fix)
+```
+
+```{r}
+chuvi$VA.fix = ifelse(is.na(chuvi$VA),0,chuvi$VA)
+summary(chuvi$VA.fix)
+```
+
+
+
+```{r}
+chuvi$STIMVD.fix = ifelse(is.na(chuvi$STIMVD),0,chuvi$STIMVD)
+summary(chuvi$STIMVD.fix)
+```
+```{r}
+chuvi$MSVD.fix = ifelse(is.na(chuvi$MSVD),0,chuvi$MSVD)
+summary(chuvi$MSVD.fix)
+```
+
+```{r}
+chuvi$VD.fix = ifelse(is.na(chuvi$VD),0,chuvi$VD)
+summary(chuvi$VD.fix)
+```
+
+
+```{r}
+chuvi$STIMVI.fix = ifelse(is.na(chuvi$STIMVI),0,chuvi$STIMVI)
+summary(chuvi$STIMVI.fix)
+```
+
+```{r}
+chuvi$MSVI.fix = ifelse(is.na(chuvi$MSVI),0,chuvi$MSVI)
+summary(chuvi$MSVI.fix)
+```
+
+```{r}
+chuvi$VI.fix = ifelse(is.na(chuvi$VI),0,chuvi$VI)
+summary(chuvi$VI.fix)
+```
+
+Ahora tenemos que recuperar los factores
+
+```{r}
+chuvi$VA.fix.factor = as.factor(chuvi$VA.fix)
+summary(chuvi$VA.fix.factor)
+chuvi$MSA.fix.factor = as.factor(chuvi$MSA.fix)
+summary(chuvi$MSA.fix.factor)
+
+```
+
+```{r}
+chuvi$VD.fix.factor = as.factor(chuvi$VD.fix)
+summary(chuvi$VD.fix.factor)
+chuvi$MSVD.fix.factor = as.factor(chuvi$MSVD.fix)
+summary(chuvi$MSVD.fix.factor)
+```
+
+```{r}
+chuvi$VI.fix.factor = as.factor(chuvi$VI.fix)
+summary(chuvi$VI.fix.factor)
+chuvi$MSVI.fix.factor = as.factor(chuvi$MSVI.fix)
+summary(chuvi$MSVI.fix.factor)
+```
+
+Choque y ATP
+---
+
+Podemos asumir que son ceros también
+
+```{r}
+chuvi$Choque.fix = ifelse(is.na(chuvi$Choque),0,chuvi$Choque)
+summary(chuvi$Choque.fix)
+```
+
+```{r}
+chuvi$ATP.fix = ifelse(is.na(chuvi$ATP),0,chuvi$ATP)
+summary(chuvi$ATP.fix)
+```
+
+
+
+
+Conversión de datos
+---
+
+Queremos eliminar los NAs de la supervivencia, pero para eso necesitamos calcular cuánto tiempo le queda de vida desde la fecha actual hasta la final que le hemos puesto calculada de media. ¿Cómo podemos hacerlo? 
+
+Mierda soy idiota.
+
+```{r}
+Tiempo.vida = ifelse((chuvi$Tiempo.inicio.ultimo.seguimiento.fix - chuvi$Tiempo.desde.implante) < 0, 0, chuvi$Tiempo.inicio.ultimo.seguimiento.fix - chuvi$Tiempo.desde.implante)
+summary(Tiempo.vida)
+
+```
+
+```{r}
+chuvi$Tiempo.hasta.ultimo.seguimiento.fix = ifelse(is.na(chuvi$Tiempo.hasta.ultimo.seguimiento), Tiempo.vida, chuvi$Tiempo.hasta.ultimo.seguimiento)
+summary(chuvi$Tiempo.hasta.ultimo.seguimiento.fix)
+```
+
+
+Esto está obviamente mal porque no es la mejor aproximación que podíamos haber hecho, pero para empezar a trabajar con los datos nos sirve. 
+
+
+Corregimos la supervivencia
+---
+
+```{r}
+summary(chuvi$Supervivencia.factor)
+```
+
+```{r}
+breaks = c(0,89,179,359,539,3000)
+Supervivencia.cor = cut(Tiempo.vida, breaks=breaks, labels=c("menos de 3", "entre 6 y 3", "entre 12 y 6", "entre 18 y 12", "más de 18"), include.lowest=T)
+Supervivencia.cor = as.character(Supervivencia.cor)
+summary(Supervivencia.cor)
+```
+
+
+```{r}
+chuvi$Supervivencia.factor = as.character(chuvi$Supervivencia.factor)
+chuvi$Supervivencia.factor.fix = ifelse(is.na(chuvi$Supervivencia.factor),Supervivencia.cor,chuvi$Supervivencia.factor)
+
+chuvi$Supervivencia.factor.fix = as.factor(chuvi$Supervivencia.factor.fix)
+summary(chuvi$Supervivencia.factor.fix)
+```
+
+Ahora ya tenemos los datos un poco más bonitos. Estaría bien corregir también los meses normales.
+
+Meses
+---
+
+```{r}
+chuvi$x3M.fix = as.character(chuvi$x3M.factor)
+
+Sup.3.M = ifelse(Tiempo.vida < 89, "NO", "SI")
+
+chuvi$x3M.fix = ifelse(is.na(chuvi$x3M.fix),Sup.3.M,chuvi$x3M.fix)
+chuvi$x3M.fix = as.factor(chuvi$x3M.fix)
+summary(chuvi$x3M.fix)
+```
+
+```{r}
+chuvi$x6M.fix = as.character(chuvi$x6M.factor)
+
+Sup.6.M = ifelse(Tiempo.vida < 179, "NO", "SI")
+
+chuvi$x6M.fix = ifelse(is.na(chuvi$x6M.fix),Sup.6.M,chuvi$x6M.fix)
+chuvi$x6M.fix = as.factor(chuvi$x6M.fix)
+summary(chuvi$x6M.fix)
+```
+
+```{r}
+chuvi$x12M.fix = as.character(chuvi$x12M.factor)
+
+Sup.12.M = ifelse(Tiempo.vida < 359, "NO", "SI")
+
+chuvi$x12M.fix = ifelse(is.na(chuvi$x12M.fix),Sup.12.M,chuvi$x12M.fix)
+chuvi$x12M.fix = as.factor(chuvi$x12M.fix)
+summary(chuvi$x12M.fix)
+```
+
+```{r}
+chuvi$x18M.fix = as.character(chuvi$x18M.factor)
+
+Sup.18.M = ifelse(Tiempo.vida < 89, "NO", "SI")
+
+chuvi$x18M.fix = ifelse(is.na(chuvi$x18M.fix),Sup.18.M,chuvi$x18M.fix)
+chuvi$x18M.fix = as.factor(chuvi$x18M.fix)
+summary(chuvi$x18M.fix)
+```
+
+
+
+Datos corregidos
+---
+
+Podemos explorar los datos corregidos para ver qué tal han salido
+
+Factor de supervivencia
+---
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=Supervivencia.factor.fix), fill="gray")
+
+```
+
+Huy, ahí habría que corregir ese entre 6 y 3. 
+
+Supervivencia VS. número de cámaras
+---
+
+```{r}
+ggplot(chuvi, aes(x=Camaras.factor)) +
+geom_bar(aes(fill=Supervivencia.factor.fix), position="fill") +
+geom_point(aes(y=-0.05), size=0.75, alpha=0.3,
+position=position_jitter(h=0.01))
+```
+
+Es curioso, cuanto menos. 
+
+
+Las gráficas a continuación son una clara muestra de que hay formas mejores de estimar el tiempo entre inicio y último seguimiento, pero que al fin y al cabo funcionan. 
+
+Estimulaciones VS. tiempo entre inicio y último seguimiento
+---
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento.fix, y=STIMA.fix)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento.fix, y=VA.fix)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+
+```{r}
+ggplot(chuvi, aes(x=Voltaje.bateria, y=as.numeric(x3M.fix))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+Voltaje batería VS. Supervivencia en meses
+---
+
+```{r}
+ggplot(chuvi, aes(x=Voltaje.bateria, y=as.numeric(x18M.fix))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+Tiempo hasta el último seguimiento VS. voltaje de la batería
+---
+
+```{r}
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento.fix, y=Voltaje.bateria)) +
+geom_point() + geom_smooth()
+```
+
+Esta gráfica se parece bastante a la que teníamos con pocos datos, pero con muchos más. 
+
+
+
+Choque y ATP
+---
+
+El chocque y ATP sabemos que son importantes, así que vamos a ver si tienen alguna relación.
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento.fix,chuvi$Choque.fix, use="complete.obs")
+```
+
+Hahahá
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento.fix,chuvi$Choque.fix, use="complete.obs")
+```
+Hahá
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento.fix, y=Choque.fix)) + geom_point() + stat_smooth(method="lm") 
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento.fix, y=ATP.fix)) + geom_point() + stat_smooth(method="lm") 
+```
+
+Lloro.
+
+Bueno pues nada. 
+
+
+
+
+

@@ -1,0 +1,801 @@
+---
+title: "Explorando los datos"
+output:
+  html_notebook: default
+  pdf_document: default
+---
+
+Para que esta libreta funcione correctamente es necesario tener cargados los datos de la primera: Análisis de d atos. 
+
+
+Vamos a explorar algunas de las variables que más interesantes nos parecen. Para eso, primero recordaremos cuáles teníamos. 
+
+```{r}
+colnames(chuvi)
+```
+
+Las variables que más interesantes nos parecen son:
+
+```{r}
+summary(chuvi[c("Tiempo.inicio.ultimo.seguimiento","Tiempo.desde.implante","Tiempo.hasta.ultimo.seguimiento","Voltaje.bateria","STIMA","STIMVD","STIMVI","Choque","ATP","Frecuencia.min","Camaras.factor","ERI.alcanzado.factor","x3M.factor","x6M.factor","x12M.factor","x18M.factor","Supervivencia.factor","R.factor","VA.factor","MSA.factor","VD.factor","MSVD.factor","VI.factor","MSVI.factor","Episodios.factor")])
+```
+
+Ahora ya podemos empezar a visualizar los datos.
+
+
+Análisis de una sola variable
+-----
+
+Tiempo desde inicio hasta último seguimiento
+---
+
+```{r}
+summary(chuvi$Tiempo.inicio.ultimo.seguimiento)
+```
+
+```{r}
+524 - 485
+```
+
+Tenemos 39 datos para realizar el análisis de esta variable. Debemos coger, pues, los resultados con pinzas, ya que el número mínimo de muestras para poder tratar la población como una población normal (se requiere cita) es de 50 al menos.
+
+```{r}
+library(ggplot2)
+ggplot(chuvi) +
+geom_histogram(aes(x=Tiempo.inicio.ultimo.seguimiento),
+binwidth=10, fill="gray")
+```
+
+
+```{r}
+library(ggplot2)
+library(scales)
+ggplot(chuvi) + geom_density(aes(x=Tiempo.inicio.ultimo.seguimiento)) +
+scale_x_continuous(labels=time)
+```
+
+Es curioso observar cómo se distribuye la población para esta variable. A pesar de todos los datos que nos faltan, parece indicar que vienen de dos poblaciones completamente distintas. 
+
+
+Tiempo desde implante
+---
+
+```{r}
+library(ggplot2)
+ggplot(chuvi) +
+geom_histogram(aes(x=Tiempo.desde.implante),
+binwidth=100, fill="gray")
+```
+
+Aquí ya vemos una distribución un poco más normal, si bien es posible que se vea mejor con el otro tipo de gráfica. 
+
+```{r}
+library(ggplot2)
+library(scales)
+ggplot(chuvi) + geom_density(aes(x=Tiempo.desde.implante)) +
+scale_x_continuous(labels=time)
+```
+
+Es decir, tenemos una población aparentemente normal en la que la población está especialmente concentrada hacia la izquierda: hay más valore de tiempos pequeños desde el implante. A primera vista, esto podría parecer extraño, ya que precisamente el objetivo de este trabajo es reducir el número de visitas que se dan en los últimos meses antes de retirar el aparato. Sin embargo, sabemos por nuestra falta de datos que muchos pacientes desaparecen de los datos antes de finalizar el tratamiento (cosa que nos parece, caunto menos, no ideal). Vamos a ver qué pasa si tomamos solo los datos para los cuales sabemos la fecha de retirada (a ver cómo hago esto lol). 
+
+Tiempo hasta último seguimiento
+---
+
+```{r}
+library(ggplot2)
+ggplot(chuvi) +
+geom_histogram(aes(x=Tiempo.hasta.ultimo.seguimiento),
+binwidth=50, fill="gray")
+```
+
+```{r}
+library(ggplot2)
+library(scales)
+ggplot(chuvi) + geom_density(aes(x=Tiempo.hasta.ultimo.seguimiento)) +
+scale_x_continuous(labels=time)
+```
+
+Aquí la distribución ya tiene una forma un poco más extraña. Para los valores que tenemos, se concenran más en los valores más pequeños: los que tienen menos tiempo hasta el último seguimiento. No es tan extraña si nos paramos a pensar que, en efecto, debe haber más citas cuanto más se acerca la cita en la que le retirarán el aparato, ya que esto es precisamente lo que nosotros queremos evitar. 
+
+Esta gráfica nos arroja mucha más luz que la anterior, a pesar de tener muchos menos datos, ya que los que teníamos para la anterior estaban condicionados de que no tenemos el seguimiento entero de los pacientes. 
+
+De nuevo, y por desgracia, nos vuelven a faltar muchísimos datos. 
+
+
+Voltaje de la batería
+---
+
+```{r}
+library(ggplot2)
+ggplot(chuvi) +
+geom_histogram(aes(x=Voltaje.bateria),
+binwidth=0.05, fill="gray")
+```
+
+```{r}
+library(ggplot2)
+library(scales)
+ggplot(chuvi) + geom_density(aes(x=Voltaje.bateria)) +
+scale_x_continuous()
+```
+
+Los resultados de esta exploración son extremadamente extraños. Lo normal sería que, a lo largo del tiempo, la batería fuera bajando de forma normal y por lo tanto tuviéramos una distribución normal. Sin embargo, lo que observamos es un pico muy alto un poco por encima de los 5V, tras lo cual tenemos otros dos picos locales en casi 6V y casi 6.5V. De nuevo, puede deberse a que nuestra población está especialmente concentrada entre los periodos más tempranos del seguimiento, pero aún así no explica por qué el pico mayor está tan concentrado en el centro de la gráfica. 
+
+
+Número de cámaras
+---
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=Camaras.factor), fill="gray")
+```
+
+Ya lo habíamos adivinado al ver los números, pero tenemos muchos datos de 2 cámaras comparados con el resto. Es posible que pudiéramos centrarnos en el análisis de solo los de 2 cámaras para facilitar los resultados, o que pudiéramos realizar un clustering previo. 
+
+
+Supervivencia
+---
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=Supervivencia.factor), fill="gray")
+```
+
+Otro resultado que se puede atribuir a la falta de datos. No sabemos cómo se distribuyen todos esos datos que faltan, pero son demasiados como para ignorarlos y fingir que el resto de los datos se comportan así. Idealmente, tendríamos que inferir los valores de alguna forma. ¿Pero cómo? ¿Encontrando alguna variable de la que dependan?
+
+Eri
+---
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=ERI.alcanzado.factor), fill="gray")
+```
+
+Variables de supervivencia
+---
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=x3M.factor), fill="gray")
+```
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=x6M.factor), fill="gray")
+```
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=x12M.factor), fill="gray")
+```
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=x18M.factor), fill="gray")
+```
+
+De nuevo, nos faltan /demasiados/ datos. De nuevo, tenemos que plantearnos qué hacer con los datos que faltan. ¿Inferirlos a partir de otros datos? 
+
+Y creo que con esto hemos terminado con la exploración de variables solas. A partir de aquí, solo tiene sentido explorarlas si lo hacemos en función de alguna otra. 
+
+Análisis de más de una variable
+-----
+
+
+En primer lugar, me parece relevante estudiar cómo están distribuidas algunas variables en función del número de cámaras, ya que parece una variable un poco importante. 
+
+Supervivencia vs. número de cámaras
+--- 
+
+Me parece interesante estudiar esta variable. 
+
+
+
+```{r}
+ggplot(chuvi, aes(x=Camaras.factor)) +
+geom_bar(aes(fill=Supervivencia.factor), position="fill") +
+geom_point(aes(y=-0.05), size=0.75, alpha=0.3,
+position=position_jitter(h=0.01))
+```
+
+Como podemos ver en los resultados, tanto para las cámaras de 1 como para las de 2, es categórico: o sobrevive más de 18 meses, o no sabemos cuánto sobrevive. Por otro lado, para el caso de la cámara de 3, tenemos un poco más de variedad. Esto nos puede presentar problemas a la hora de estudiar los datos: nos planteamos estudiar solo las cámaras de 3? Pero tenemos mucha más densidad de datos en el caso de la cámara de 2. 
+
+
+Las otras variables de supervivencia en función del número de cámaras
+---
+
+```{r}
+ggplot(chuvi, aes(x=Camaras.factor)) +
+geom_bar(aes(fill=x3M.factor), position="fill") +
+geom_point(aes(y=-0.05), size=0.75, alpha=0.3,
+position=position_jitter(h=0.01))
+```
+
+```{r}
+ggplot(chuvi, aes(x=Camaras.factor)) +
+geom_bar(aes(fill=x6M.factor), position="fill") +
+geom_point(aes(y=-0.05), size=0.75, alpha=0.3,
+position=position_jitter(h=0.01))
+```
+
+```{r}
+ggplot(chuvi, aes(x=Camaras.factor)) +
+geom_bar(aes(fill=x12M.factor), position="fill") +
+geom_point(aes(y=-0.05), size=0.75, alpha=0.3,
+position=position_jitter(h=0.01))
+```
+
+```{r}
+ggplot(chuvi, aes(x=Camaras.factor)) +
+geom_bar(aes(fill=x18M.factor), position="fill") +
+geom_point(aes(y=-0.05), size=0.75, alpha=0.3,
+position=position_jitter(h=0.01))
+```
+
+Nos encontramos de nuevo con que tenemos los "mejores" datos para el caso de las 3 cámaras, a pesar de que es el caso en el que menos datos tenemos. O los inferimos o nos sé qué hacer, sinceramente. 
+
+
+Cámaras vs. ERI alcanzado
+---
+
+```{r}
+ggplot(chuvi, aes(x=Camaras.factor)) +
+geom_bar(aes(fill=ERI.alcanzado.factor), position="fill") +
+geom_point(aes(y=-0.05), size=0.75, alpha=0.3,
+position=position_jitter(h=0.01))
+```
+
+Por suerte, al menos en este caso parece que se distribuyen de una forma un poco más normal. Dentro de lo que cabe, para las tres cámaras tenemos casos en los que se ha alcanzado el ERI. 
+
+
+
+
+Relación entre el tiempo desde el implante y el voltaje de la batería
+---
+
+```{r}
+cor(chuvi$Tiempo.desde.implante, chuvi$Voltaje.bateria)
+```
+
+Hay correlación negativa, y además es bastante alta: estas dos variables están altamente correlacionadas. 
+
+
+```{r}
+ggplot(chuvi, aes(x=Tiempo.desde.implante, y=Voltaje.bateria)) +
+geom_point() + stat_smooth(method="lm")
+```
+
+
+```{r}
+ggplot(chuvi, aes(x=Tiempo.desde.implante, y=Voltaje.bateria)) +
+geom_point() + geom_smooth()
+```
+
+aquí vemos sin duda unos resultados muy interesantes. Es bastante curioso cómo se distribuyen los niveles de la batería en función del tiempo. 
+
+
+Voltaje de la batería frente al tiempo hasta el último seguimiento
+---
+
+Siguiendo la temática de tiempo vs. batería:
+
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento, chuvi$Voltaje.bateria, use="complete.obs")
+```
+
+Vemos que la correlación da un valor bastante alto, y directo, cosa que tiene sentido. 
+
+```{r}
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=Voltaje.bateria)) +
+geom_point() + stat_smooth(method="lm") 
+```
+
+
+```{r}
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=Voltaje.bateria)) +
+geom_point() + geom_smooth()
+```
+
+Bueno, de alguna forma vemos que se adecúa con los resultados anteriores. En vez de seguir una línea recta exacta, tiene como un punto en el que se estanca. Me pregunto a qué se debe. 
+
+
+Relación entre tiempo desde el implante y tiempo hasta el último seguimiento
+---
+
+Solo por curiosidad, vamos a ver cuál es la relación entre el tiempo desde el implante y el tiempo hasta el último seguimiento. 
+
+Los resultados, por supuesto, tienen todo el sentido del mundo. 
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento, chuvi$Tiempo.desde.implante, use="complete.obs")
+```
+
+Vemos que también hay una correlación negativa entre el tiempo que lleva la batería implantada y el tiempo que queda para que le quiten el aparato. Obviamente, esto tiene sentido ya que también hay correlación con el voltaje de la batería, que ya solo de existir gasta batería. 
+
+```{r}
+ggplot(chuvi, aes(x=Tiempo.desde.implante, y=Tiempo.hasta.ultimo.seguimiento)) +
+geom_point() + stat_smooth(method="lm") 
+```
+
+
+Estoy un poco atascada así que igual es mejor dejarlo estar durante una temporadita. 
+
+
+
+Tiempo entre inicio y último seguimiento VS. número de cámaras?
+---
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$Camaras, use="complete.obs")
+```
+
+Eeeeeeeen fin. 
+
+```{r}
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=as.numeric(Camaras.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+HM. INTERESANTE. Esto no nos sirve para nada lol. Quería ver si la distribución extraña de poblaciones se debía al distinto número de cámaras (y consiguientes distintas cantidades de trabajo para el dispositivo) pero ya veo que no puede ser. 
+
+
+
+Supervivencia VS. Episodios
+---
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$Episodios, use="complete.obs")
+```
+
+
+```{r}
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=Episodios)) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth() + ylim(0, 100)
+```
+
+Pueh nada. Como podemos ver, tampoco se puede deber a si hay o no episodios, ya que faltan datos para el caso de sí haber episodios. 
+
+
+Todas las variables de programación VS. las variables de supervivencia, por partes
+-----
+
+Vamos primero a organizarnos un poco: quiero ver todas las relaciones, y la mejor forma de hacerlo es organizarme. Tenemos las siguientes variables de supervivencia:
+
+- Tiempo entre inicio y fin
+- Tiempo hasta el fin de vida
+- Supervivencia
+- Voltaje batería
+- Supervivencia 3, 6, 12, 18 meses
+
+Prioridad de estas variables:
+
+- Tiempo hasta el fin de vida
+- Tiempo entre inicio fin
+- Supervivencia
+- Supervivencia distintos meses
+- Voltaje batería
+
+Y tenemos las siguientes variables de programación:
+
+- Número de cámaras
+- Estimulaciones: A, VI, VD
+- Voltaje y MS de las estimulaciones: A, VI, VD
+- Choque
+- ATP
+- Frecuencia mínima
+- R
+
+Prioridad de estas variables: 
+
+- número de cámaras
+- Estimulaciones + voltaje
+- Frecuencia mínima
+- El resto
+
+
+Empezamos pues 
+
+Tiempo entre inicio y fin de vida VS. Estimulaciones + voltaje
+---
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$STIMA, use="complete.obs")
+
+```
+
+Como podemos ver, el valor de la correlación no es lo suficientemente alto para ser significativo. 
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=STIMA)) + geom_point() + stat_smooth(method="lm") 
+```
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$STIMVD, use="complete.obs")
+```
+
+La correlación es un poco más alta esta vez, pero tampoco es lo suficientemente alta para ser algo significativo. 
+
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=STIMVD)) + geom_point() + stat_smooth(method="lm")
+```
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$STIMVI, use="complete.obs")
+```
+
+Otro valor que no significa nada significativo. 
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=STIMVI)) + geom_point() + stat_smooth(method="lm")
+```
+
+
+(Hemos dejado solo el resultado del primero, ya que los tres daban los mismos resultados)
+Esto podría haber sido interesante, si hubiéramos tenido valores... Pero como no los tenemos... 
+
+Voltaje estimulaciones VS. tiempo entre inicio y último seguimiento
+---
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$VA, use="complete.obs")
+```
+
+Esta vez el valor no es muy alto, pero podemos ver que al menos es más alto que los valores anteriores. Hay una cierta correlación. 
+
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=VA)) + geom_point() + stat_smooth(method="lm") 
+```
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$VD, use="complete.obs")
+```
+
+Esta vez vemos un valor de correlación inversa muy alto, pero no deberíamos fiarnos demasiado porque solo tenemos cinco datos. 
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=VD)) + geom_point() + stat_smooth(method="lm") 
+```
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$VI, use="complete.obs")
+
+```
+
+Un valor de correlación relativamente alto, pero no demasiado. Esto, añadiendo el hecho de que casi no tenemos datos, hace que no queramos fiarnos mucho de los resultados. 
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=VI)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+Bueno, como soy muy lista había puesto límite 2000 y así claro que no se veía nada. 
+Tenemos muy pocos datos para poder sacar conclusiones fehacientes, pero parece haber una relación entre la duración de la batería y el voltaje de las distintas cámaras. Cuanto mayor es el voltaje, menor es la duración. 
+
+Tiempo entre inicio y último seguimiento vs. MSVA, etc.
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$MSA, use="complete.obs")
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=MSA)) + geom_point() + stat_smooth(method="lm") 
+```
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$MSVD, use="complete.obs")
+```
+
+Una correlación tan baja que no podemos asumir que hay relación real, sobre todo asumiendo la falta de datos. 
+
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=MSVD)) + geom_point() + stat_smooth(method="lm") 
+```
+
+```{r}
+cor(chuvi$Tiempo.inicio.ultimo.seguimiento, chuvi$MSVI, use="complete.obs")
+```
+
+Esta vez la correlación es un poco mejor, pero tampoco deberíamos tomárnoslos muy en serio teniendo en cuenta la cantidad de datos. 
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=MSVI)) + geom_point() + stat_smooth(method="lm") 
+```
+
+Sin ver los resultados de las correlaciones, no me atrevería a asegurar que hay realmente una relación entre ambas variables, sobre todo con tan pocos datos, pero al menos es buena señal que para los tres valores nos dé el mismo tipo de relación: cuanto mayor es el valor, menor es el tiempo que dura la batería. 
+
+
+Número de cámaras VS. Tiempo entre inicio y fin
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=Camaras)) + geom_point() + stat_smooth(method="lm") 
+```
+
+Como no tenemos ningún dato de tiempo final para el número de cámaras, no sabemos si afecta. Maravilloso. 
+
+Frecuencia mínima VS. Tiempo
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento, y=Frecuencia.min)) + geom_point() + stat_smooth(method="lm") 
+```
+
+Hmmmmmgenial
+
+
+Choque, ATP y R: ya ni me molesto en ponerlas: no aparece ningún dato en las gráficas.
+
+
+Tiempo hasta el último seguimiento
+---
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento, chuvi$STIMA, use="complete.obs")
+```
+
+No correlation. 
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=STIMA)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento, chuvi$STIMVD, use="complete.obs")
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=STIMVD)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento, chuvi$STIMVI, use="complete.obs")
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=STIMVI)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=MSA)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento, chuvi$MSVD, use="complete.obs")
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=MSVD)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento, chuvi$MSVI, use="complete.obs")
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=MSVI)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento, chuvi$VA, use="complete.obs")
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=VA)) + geom_point() + stat_smooth(method="lm") 
+```
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento, chuvi$VD, use="complete.obs")
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=VD)) + geom_point() + stat_smooth(method="lm") 
+```
+
+```{r}
+cor(chuvi$Tiempo.hasta.ultimo.seguimiento, chuvi$VI, use="complete.obs")
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=VI)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+
+No hay mucha correlación entre cuánto dura la batería desde un punto concreto y la programación de esto (cosa que, dentro de lo que cabe, tiene sentido, pues son valores que se mantienen y no van cambiando según cuánta vida le queda a la batería). Lo mismo pasa con todos los valores de programación. 
+
+
+Supervivencia
+---
+
+Supervivencia VS. Estimulaciones
+
+No me está queriendo pintar las gráficas porque faltan demasiados valores lmao. 
+
+
+Supervivencia distintos meses
+---
+
+Supervviencia meses vs. voltaje
+
+```{r}
+cor(chuvi$Voltaje.bateria, as.numeric(chuvi$x3M.factor), use="complete.obs")
+
+```
+
+
+```{r}
+ggplot(chuvi, aes(x=Voltaje.bateria, y=as.numeric(x3M.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+
+```{r}
+cor(chuvi$Voltaje.bateria, as.numeric(chuvi$x6M.factor), use="complete.obs")
+
+```
+
+```{r}
+ggplot(chuvi, aes(x=Voltaje.bateria, y=as.numeric(x6M.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+```{r}
+cor(chuvi$Voltaje.bateria, as.numeric(chuvi$x12M.factor), use="complete.obs")
+
+```
+
+```{r}
+ggplot(chuvi, aes(x=Voltaje.bateria, y=as.numeric(x12M.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+```{r}
+cor(chuvi$Voltaje.bateria, as.numeric(chuvi$x18M.factor), use="complete.obs")
+
+```
+
+```{r}
+ggplot(chuvi, aes(x=Voltaje.bateria, y=as.numeric(x18M.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+POR FIN tenemos resultados aunque sean un poco caca. Dentro de lo que cabe, vemos que hay cierto valor de corte categórico. El que mejor podemos ver es el de los 18 meses, porque es para el que más datos tenemos. Aquí ya vemos una clara dependencia de supervivencia con la batería. 
+
+
+Supervivencia vs. estimulaciones
+
+```{r}
+cor(chuvi$STIMA, as.numeric(chuvi$x3M.factor), use="complete.obs")
+
+```
+
+```{r}
+ggplot(chuvi, aes(x=STIMA, y=as.numeric(x3M.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+```{r}
+ggplot(chuvi, aes(x=STIMA, y=as.numeric(x6M.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+```{r}
+ggplot(chuvi, aes(x=STIMA, y=as.numeric(x12M.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+```{r}
+ggplot(chuvi, aes(x=STIMA, y=as.numeric(x18M.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+A pesar de la pequeña cantidad de datos no podemos evitar ver la relación entre que haya un valor pequeño y que haya más probabilidades de sobrevivir? No tengo muy claro qué significa cada uno de los dos? 
+
+```{r}
+ggplot(chuvi, aes(x=STIMVD, y=as.numeric(x18M.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+```{r}
+ggplot(chuvi, aes(x=STIMVI, y=as.numeric(x18M.factor))) +
+geom_point(position=position_jitter(w=0.05, h=0.05)) +
+geom_smooth()
+```
+
+Estos resultados son bastante extraños y no sé qué conclusiones sacar de ellos, la verdad. 
+
+
+Revisión
+-----
+
+Heos descubierto que los valores de programación no son tal, así que vamos a rehacer unas gráficas.
+
+STIMS: Los STIMS no son valores programados: cambian cada vez. Creo que puede haber relación con la bajada de voltaje desde la cita anterior hasta la actual, pero como eso no tiene sentido que lo miremos... 
+
+ESTIMULACIONES
+---
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=STIMA)) + geom_point() + stat_smooth(method="lm") 
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=STIMVD)) + geom_point() + stat_smooth(method="lm") 
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento, y=STIMVI)) + geom_point() + stat_smooth(method="lm") 
+```
+
+Bueno, o sea, que no hay relación. Es bueno saberlo. 
+
+
+VAs
+---
+
+```{r}
+cor(chuvi$Voltaje.bateria,chuvi$VA, use="complete.obs")
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Voltaje.bateria, y=VA)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+```{r}
+cor(chuvi$Voltaje.bateria,chuvi$MSA, use="complete.obs")
+```
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=MSA, y=Voltaje.bateria)) + geom_point() + stat_smooth(method="lm") 
+```
+
+
+Conclusiones
+-----
+
+De este análisis sacamos unas cuantas conclusiones:
+
+- Los datos no son ideales
+- La mayor variedad de datos la tenemos para las 3 cámaras, pero la mayor cantidad de datos la tenemos para las 2 cámaras. 
+- La evolución del voltaje con respecto al tiempo es bastante interesante.  
+- El voltaje de la batería, así como los parámetros de estimulación, parecen tener relación con la supervivencia de la batería. 
+

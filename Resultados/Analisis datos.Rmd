@@ -1,0 +1,400 @@
+---
+title: "Analisis datos LPRO"
+output:
+  html_notebook: default
+---
+
+Vamos a intentar un primer análisis de los datos que tenemos de LPRO. Separaremos los datos en datos de prueba y datos de tuning. 
+
+
+Primero importamos los datos.
+
+```{r}
+install.packages("readxl")
+```
+
+Si no tenemos la librería, ejecutamos este comando. 
+
+```{r}
+library(readxl)
+chuvi <- read_excel("C:/Users/Elena/Dropbox/Clase/LPRO/Ovatio CHUVI (Autosaved)Final.2.xlsx", 
+    sheet = "total")
+```
+
+
+En segundo lugar, hacemos una primera observación de los datos
+```{r}
+typeof(chuvi)
+class(chuvi)
+dim(chuvi)
+```
+
+
+```{r}
+
+print(chuvi[1:3,])
+```
+
+Vemos que, en efecto, los datos se han leído como un dataframe, y que se han guardado de forma correcta los nombres de las columnas. Podemos verlos mejor de la siguiente forma: 
+
+```{r}
+colnames(chuvi)
+```
+
+Sin embargo, estos nombres no son ideales para trabajar con ellos, así que los modificamos: 
+
+```{r}
+colnames(chuvi) = c("SN","Camaras","Modelo","Fecha.implante","Tiempo.inicio.ultima.cita","Tiempo.inicio.ultimo.seguimiento", "Fecha","Fecha.cita.anterior","Fecha.ultima.cita.registrada","Fecha.ultimo.seguimiento","Tiempo.desde.implante","Tiempo.desde.cita.anterior","Tiempo.hasta.ultima.cita","Tiempo.hasta.ultimo.seguimiento","ERI.alcanzado","Voltaje.bateria","x18M","x12M","x6M", "x3M","Supervivencia", "x18M (ERI)","x12M (ERI)","x6M (ERI)","x3M (ERI)","STIMA","STIMVD","STIMVI","Choque","ATP","Frecuencia.min","R","VA","MSA","VD","MSVD","VI","MSVI","Episodios")
+colnames(chuvi)
+```
+
+Así tenemos unos nombres más comprensibles e iguales entre todos. Ahora podemos pasar a examinar los datos con más profundidad: 
+
+```{r}
+summary(chuvi)
+```
+
+Analizaremos los datos por partes.
+
+La columna SN:
+---
+
+```{r}
+summary(chuvi$SN)
+print(chuvi[1:3,]$SN)
+```
+
+ Se trata del número serial del aparato.
+ 
+Número de cámaras:
+---
+```{r}
+summary(chuvi$Camaras)
+```
+
+
+Es el número de cámaras que tiene el aparato, que puede ser 1, 2 ó 3. Podríamos pasar el nombre de esta variable a String, ya que realmente no es un valor numérico en el sentido estricto de la palabra. 
+
+Como este campo solo puede tomar los valores discretos 1, 2, y 3, lo pasamos a un factor (no sé cómo de buena idea es esto).
+
+```{r}
+chuvi$Camaras.factor <- as.factor(ifelse(chuvi$Camaras==1,1,ifelse(chuvi$Camaras==2,2,3)))
+summary(chuvi$Camaras.factor)
+```
+
+
+Modelo:
+---
+```{r}
+summary(chuvi$Modelo)
+print(chuvi[1:3,]$Modelo)
+```
+
+A pesar de todas las NAs, hablando con el proporcionador de los datos sabemos que todos los aparatos corresponden al mismo modelo. No es una variable que nos sirva de mucho.
+
+Fecha implante:
+---
+```{r}
+summary(chuvi$Fecha.implante)
+```
+
+Es la fecha en la que se implantó el aparato. Vemos que tenemos 14 NAs. Al ser tan pocos, igual nos conviene deshacernos de esas filas, ya que parece ser un dato bastante importante.
+
+Tiempo entre inicio-ultima cita
+---
+```{r}
+summary(chuvi$Tiempo.inicio.ultima.cita)
+```
+
+Es el tiempo entre la fecha de implante y la fecha de la última revisión registrada. A veces podrá coincidir con el siguiente campo. Esta variable nos podrá servir para saber cuántos meses, al menos, sobrevive el aparato. 
+
+Nota: Estoy pensando que lo más cómod para analizar los datos va a ser dividirlos en:
+Supervivencia: +18 meses, 18-12 meses, 12-6 meses, 6-3 meses, -3 meses. A ver cómo puedo reorganizar los datos para que queden así. 
+
+Tiempo entre inicio-ultimo seguimiento
+---
+
+```{r}
+summary(chuvi$Tiempo.inicio.ultimo.seguimiento)
+```
+Es el tiempo entre el implante y la retirada del aparato, aproximadamenet. Este es un dato que nos interesa mucho. Tenemos muchas NAs que no es conveniente retirar porque se ha perdido el seguimiento del paciente. Habrá que tratar los datos de otro modo.
+
+
+
+Fecha
+---
+```{r}
+summary(chuvi$Fecha)
+```
+
+Es la fecha de la medida. Parece más interesante medir la diferencia en días entre el implante y la fecha actual que la fecha en sí, o la diferencia en días entre esta fecha y la fecha final. 
+
+
+Fecha de la rev anterior
+---
+```{r}
+summary(chuvi$Fecha.cita.anterior)
+```
+
+Como su nombre indica, es la fecha de la revisión anterior. No parecer ser demasiado relevante. Faltan 14 datos.
+
+
+Fecha ultima cita
+---
+```{r}
+summary(chuvi$Fecha.ultima.cita.registrada)
+```
+
+Es la fecha de la última revisión a la que ha ido el paciente. No tiene por qué coincidir con la del último seguimiento, que es cuando le quitan el aparato. 
+
+Vuelven a faltar 14 datos, que podemos presumir son los mismos que los de fecha.cita.anterior. 
+
+FechaUltimoSeguimiento
+---
+
+```{r}
+summary(chuvi$Fecha.ultimo.seguimiento)
+```
+
+Fecha en la que se le ha retirado el aparato al paciente. Hay un número exagerado de NAs, porque aún no se le ha retirado el aparato al paciente o se ha perdido el seguimiento. Es poco probable que podamos eliminar estos NAs, ya que son demasiados. Habrá que tratarlos de otro modo. 
+
+
+Tiempo desde implante
+---
+```{r}
+summary(chuvi$Tiempo.desde.implante)
+```
+
+Esta ya es más interesante. Tenemos los días desde que se implantó el aparato hasta la medida actual.
+
+
+Tiempo entre anterior cita y esta
+---
+```{r}
+summary(chuvi$Tiempo.desde.cita.anterior)
+```
+
+No le veo ningún sentido. Además de que el mínimo de un día desde la cita anterior es bastante sospechoso.
+
+
+Tiempo entre primer y último seguimiento
+---
+```{r}
+summary(chuvi$Tiempo.inicio.ultimo.seguimiento)
+```
+
+Este campo es el número de días qeu pasaron desde que se implantó el aparato hasta que se retiró. Parece extremadamente relevante, pero por desgracia nos faltan muchísimos datos. Sin embargo, ya podemos ver que fluctúa entre 1812 días (casi 5 años) y 2512 dias (casi 7 años).
+
+
+Se alcanzó el ERI
+---
+```{r}
+summary(chuvi$ERI.alcanzado)
+```
+
+Idealmente, indicaría si se alcanzó el ERI al retirar el aparato o no, pero no sabemos si significa eso realmente. En realidad, significa que en esa cita concreta se alcanzó el ERI. Como tal, es conveniente convertirlo en un factor para poder observarlo con más detenimiento.
+
+```{r}
+chuvi$ERI.alcanzado.factor = as.factor(ifelse(chuvi$ERI.alcanzado=="Si","SI","NO"))
+summary(chuvi$ERI.alcanzado.factor)
+```
+
+Así podemos ver que el número de datos que tenemos en los que se alcanzó el ERI es de solamente 29. No parece una situación muy ideal. 
+
+Batería V
+---
+```{r}
+summary(chuvi$Voltaje.bateria)
+```
+
+El valor del voltaje de la batería para una fecha determinada. Esta variable es una de las más importantes. Podríamos usarla tanto como variable aleatoria como variable dependiente, dependiendo del modelo que acabemos implementando.
+
+Cuando este valor llega al ERI (en nuestro caso, de 4.8), se entra en modo ahorro, modo en el que el médico puede considerar retirar ya la batería. 
+
+
+x18, x12, x6, x3
+---
+```{r}
+summary(chuvi$x3M)
+summary(chuvi$x6M)
+summary(chuvi$x12M)
+summary(chuvi$x18M)
+
+```
+
+Mediante una dicotomía de 1s y 0s, indica si, a partir de ese momento, la batería vivió al menos 3, 6, 12, 18 meses respectivamente. Es ideal convertirlos en factor, ya que significan SÍ o NO.
+
+```{r}
+chuvi$x3M.factor = as.factor(ifelse(chuvi$x3M==0,"NO","SI"))
+summary(chuvi$x3M.factor)
+```
+
+```{r}
+chuvi$x6M.factor = as.factor(ifelse(chuvi$x6M==0,"NO","SI"))
+summary(chuvi$x6M.factor)
+```
+
+```{r}
+chuvi$x12M.factor = as.factor(ifelse(chuvi$x12M==0,"NO","SI"))
+summary(chuvi$x12M.factor)
+
+```
+
+```{r}
+chuvi$x18M.factor = as.factor(ifelse(chuvi$x18M==0,"NO","SI"))
+summary(chuvi$x18M.factor)
+```
+
+Superviviencia
+---
+
+```{r}
+summary(chuvi$Supervivencia)
+```
+
+Este es un campo nuevo que hemos añadido combinando los mecionados anteriormente. De nuevo, es más conveniente convertirlo en un factor. 
+
+```{r}
+chuvi$Supervivencia.factor = as.factor(chuvi$Supervivencia)
+summary(chuvi$Supervivencia.factor)
+```
+
+Este campo podría servirnos como variable dependiente, pero vemos que faltan bastantes valores, por desgracia. 
+
+
+PARÁMETROS PROGRAMADOS EN EL APARATO
+---
+
+Entendemos que a partir de aquí son parámetros que, si bien se pueden cambiar, son programados de forma distinta para cada paciente en función de sus necesidades. 
+
+ESTIMA, STIMVD, STIMVI
+---
+```{r}
+summary(chuvi$STIMA)
+summary(chuvi$STIMVD)
+summary(chuvi$STIMVI)
+
+```
+
+Son los porcentajes de estimulación de los distintos ventrículos. El número de NAs debería coincidir con los de los voltajes y ms de los distintos ventrículos, pero no parece ser así en el caso de A. 
+
+Yo cambiaría las NAs por el valor ausente, en el caso de que hagamos el análisis igual para las tres cámaras. Si no, simplemente se borran las columnas no relevantes y pista. 
+
+Preguntar la diferencia entre NA y el valor 0 ó 1 para las estimuaciones!!!
+
+
+CHOQUE y ATP
+---
+
+```{r}
+summary(chuvi$Choque)
+summary(chuvi$ATP)
+
+```
+
+Tampoco sabemos qué es. Preguntar diferencia entre NAs y 0 y 1. Podría ser que pudiéramos librarnos de los NAs sustituyéndolos por ceros si significan lo que creo que significan. 
+
+Frecuencia mínima
+---
+
+```{r}
+summary(chuvi$Frecuencia.min)
+
+```
+
+Es la frecuencia mínima de estimulación del aparato. Vemos que todos tienen una frecuencia, y no hay ninguna NA. Lucky. 
+
+R
+---
+
+```{r}
+summary(chuvi$R)
+
+```
+
+Lo convertimos a factor para poder leerlo. 
+
+```{r}
+chuvi$R.factor = as.factor(chuvi$R)
+summary(chuvi$R.factor)
+```
+
+Vemos que, de nuevo, nos faltan datos. Son tan pocos que podríamos considerar ignorar esas columnas.
+
+
+VA, ms VA, VD, ms VD, VI, ms VI
+---
+
+```{r}
+summary(chuvi$VA)
+summary(chuvi$MSA)
+
+```
+
+```{r}
+summary(chuvi$VD)
+summary(chuvi$MSVD)
+```
+
+```{r}
+summary(chuvi$VI)
+summary(chuvi$MSVI)
+```
+
+
+El VD es el único que no presenta NAs, mientras que el VA es el que menos NAs presenta. Como hemos analizado los datos antes, sabemos que esto se debe al número de cámaras que estimula cada aparato. Sería conveniente cambiar los NAs por algún otro valor, como no computa. 
+
+Los valores de las estimulaciones también parecen bastante estables así que se podrían cambiar a factor, por ejemplo. (con cuidado).
+
+También se podría considerar sustituir los NAs por ceros, si procede hacerlo con las estimulaciones. Así, nos libraríamos de todos esos valores que faltan. 
+
+(Debemos tener cuidado con esta transformación, pues podríamos encontrarnos con valores no contemplados en el factor. ¿Qué haríamos en este caso?) Podemos preguntarle al médico cuáles son los distintos valores de configuración. Sería sin duda más cómodo. 
+
+```{r}
+chuvi$VA.factor = as.factor(chuvi$VA)
+summary(chuvi$VA.factor)
+chuvi$MSA.factor = as.factor(chuvi$MSA)
+summary(chuvi$MSA.factor)
+
+```
+
+```{r}
+chuvi$VD.factor = as.factor(chuvi$VD)
+summary(chuvi$VD.factor)
+chuvi$MSVD.factor = as.factor(chuvi$MSVD)
+summary(chuvi$MSVD.factor)
+```
+
+```{r}
+chuvi$VI.factor = as.factor(chuvi$VI)
+summary(chuvi$VI.factor)
+chuvi$MSVI.factor = as.factor(chuvi$MSVI)
+summary(chuvi$MSVI.factor)
+```
+
+
+Episodios
+---
+
+```{r}
+summary(chuvi$Episodios)
+```
+
+Casi no se dan episodios, pero para aquellos que se dan, se dan en gran cantidad. Por suerte no tenemos NA,s ya que ya hemos tratado estos datos y hemos considerado que si no hay datos es que hay 0 episodios. 
+
+
+Me interesa crear una variable que sea si tiene episodios o no.
+
+```{r}
+chuvi$Episodios.factor = as.factor(ifelse(chuvi$Episodios==0,"NO","SI"))
+summary(chuvi$Episodios.factor)
+```
+
+
+
+Cosas a preguntar
+---
+
+Preguntar la diferencia entre NA y el valor 0 ó 1 para las estimuaciones, choque, ATP, VA y msA.
+Preguntar qué es la R al médico y por qué no tiene datos a mis compañeros. 
+Preguntar qué son el CHOQUE y el ATP. 
