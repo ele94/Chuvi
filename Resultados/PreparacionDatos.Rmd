@@ -1,0 +1,54 @@
+---
+title: "Preparacion de datos"
+output: html_notebook
+---
+
+Ejecutando el siguiente código preparamos los datos para trabajar con ellos.
+```{r tidy=TRUE}
+install.packages("readxl")
+
+library(readxl)
+chuvi <- read_excel("C:/Users/Elena/Dropbox/Clase/LPRO/Ovatio CHUVI (Autosaved)Final.2.xlsx", 
+    sheet = "total")
+
+colnames(chuvi) = c("SN","Camaras","Modelo","Fecha.implante","Tiempo.inicio.ultima.cita","Tiempo.inicio.ultimo.seguimiento", "Fecha","Fecha.cita.anterior","Fecha.ultima.cita.registrada","Fecha.ultimo.seguimiento","Tiempo.desde.implante","Tiempo.desde.cita.anterior","Tiempo.hasta.ultima.cita","Tiempo.hasta.ultimo.seguimiento","ERI.alcanzado","Voltaje.bateria","x18M","x12M","x6M", "x3M","Supervivencia", "x18M (ERI)","x12M (ERI)","x6M (ERI)","x3M (ERI)","STIMA","STIMVD","STIMVI","Choque","ATP","Frecuencia.min","R","VA","MSA","VD","MSVD","VI","MSVI","Episodios")
+
+
+chuvi$Camaras.factor <- as.factor(ifelse(chuvi$Camaras==1,1,ifelse(chuvi$Camaras==2,2,3)))
+
+chuvi$ERI.alcanzado.factor = as.factor(ifelse(chuvi$ERI.alcanzado=="Si","SI","NO"))
+
+chuvi$x3M.factor = as.factor(ifelse(chuvi$x3M==0,"NO","SI"))
+chuvi$x6M.factor = as.factor(ifelse(chuvi$x6M==0,"NO","SI"))
+chuvi$x12M.factor = as.factor(ifelse(chuvi$x12M==0,"NO","SI"))
+chuvi$x18M.factor = as.factor(ifelse(chuvi$x18M==0,"NO","SI"))
+chuvi$Supervivencia.factor = as.factor(chuvi$Supervivencia)
+chuvi$R.factor = as.factor(chuvi$R)
+chuvi$VA.factor = as.factor(chuvi$VA)
+chuvi$MSA.factor = as.factor(chuvi$MSA)
+chuvi$VD.factor = as.factor(chuvi$VD)
+chuvi$MSVD.factor = as.factor(chuvi$MSVD)
+chuvi$VI.factor = as.factor(chuvi$VI)
+chuvi$MSVI.factor = as.factor(chuvi$MSVI)
+chuvi$Episodios.factor = as.factor(ifelse(chuvi$Episodios==0,"NO","SI"))
+
+```
+
+A continuación, corregimos los datos, sustituyendo NAs por lo que corresponda. 
+```{r tidy=TRUE}
+chuvi$STIMA.fix = ifelse(is.na(chuvi$STIMA),0,chuvi$STIMA)
+chuvi$MSA.fix = ifelse(is.na(chuvi$MSA),0,chuvi$MSA)
+chuvi$VA.fix = ifelse(is.na(chuvi$VA),0,chuvi$VA)
+chuvi$STIMVD.fix = ifelse(is.na(chuvi$STIMVD),0,chuvi$STIMVD)
+chuvi$MSVD.fix = ifelse(is.na(chuvi$MSVD),0,chuvi$MSVD)
+chuvi$VD.fix = ifelse(is.na(chuvi$VD),0,chuvi$VD)
+chuvi$STIMVI.fix = ifelse(is.na(chuvi$STIMVI),0,chuvi$STIMVI)
+chuvi$MSVI.fix = ifelse(is.na(chuvi$MSVI),0,chuvi$MSVI)
+chuvi$VI.fix = ifelse(is.na(chuvi$VI),0,chuvi$VI)
+
+chuvi$Choque.fix = ifelse(is.na(chuvi$Choque),0,chuvi$Choque)
+chuvi$ATP.fix = ifelse(is.na(chuvi$ATP),0,chuvi$ATP)
+
+```
+
+

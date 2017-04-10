@@ -1,0 +1,156 @@
+---
+title: "Informe: Exploracion de los datos"
+output: html_notebook
+---
+
+Esta libreta se corresponde con la conitnuación de la Preparación de Datos de Chuvi.
+
+
+Vemos los datos con los que nos encontramos. 
+
+```{r}
+dim(chuvi)
+```
+
+
+```{r}
+summary(chuvi)
+```
+
+
+Resumen de los datos que tenemos entre manos
+---
+
+Hacemos un primer análisis inicial de los datos con los que contaba el dataset inicial:
+
+SN: número de identificación del paciente.
+Cámaras: número de cámaras del aparato. Puede ser 1, 2 o 3. 
+Modelo: modelo del aparato. Solo tenemos uno. 
+Fecha implante: fecha en la que se ha implantado el aparato. 
+Fecha: fecha en la que se han tomado las medidas.
+Fecha último seguimiento: fecha de retirada del aparato. Este dato está incompleto. Tenemos `527 - 485`.
+Voltaje de la batería: medida del voltaje, en watios. 
+STIMA: porcentaje de estimulación de la aurícula acumulado desde la sesión anterior. Los datos no están completos, y presumimos que se debe a que esta estimulación no existe si el aparato no está programado para actuar sobre la aurícula. 
+STIMVD: porcentaje de estimulación del ventrículo derecho desde la sesión anterior. 
+STIMVI: porcentaje de estimulación del ventrículo izquierdo desde la sesión anterior. Los datos, al igual que en STIMA, no están completos. Creemos que se debe a la misma razón.
+Choque: indica el número de veces que ha saltado esta feature desde la revisión anterior. Los datos no están completos, presumiblemente porque en algunos pacientes no se programa esta característica.
+ATP: Al igual que en choque, identifica el número de veces que ha saltado desde la revisión anterior. Faltan el mismo número de datos que para Choque, presumiblemente los mismos, y por la misma razón. 
+Frecuencia mínima: frecuencia mínima a la que funciona el aparato. 
+R: variable que indica si el aparato tiene respuesta en frecuencia o no. 
+VA, VD, y VI: Respectivos valores de tensión a la salida de la aurícula, ventrículo derecho y ventrículo izquierdo medidos en el paciente. Los datos de VA y VI no están completos, presumiblemente por la msima razón que STIMA y STIMVI.
+MSA, MSVD, MSVI: Anchura del impulso de salida de, respectivamente, la aurícula, el ventrículo derecho y el ventrículo izquierdo, en milisegundos. Son valores, al igual que los anteriores, medidos en el paciente. De nuevo faltan datos en MSA y MSVI, y creemos que se debe a la misma razón que los datos anteriores. 
+Episodios: el número de episodios que ha tenido un paciente desde la anterior revisión. Faltan datos, y creeos que se debe a que no todos los pacientes tienen episodios.
+
+
+
+A continuación explicamos los datos que hemos derivado para poder trabajar mejor con ellos:
+
+Tiempo inicio último seguimiento: tiempo en días entre el implante del aparato y la retirada del mismo. Tenemos `527 - 485` datos usables para esta variable, ya que los datos que tenemos de los pacientes no están completos. 
+Tiempo hasta último seguimiento: Tiempo, en días, desde la fecha de la cita actual hasta que se retire el aparato. De nuevo, esta variable no está completa por la misma razón que la anterior. 
+
+
+
+Tiempo entre inicio y último seguimiento
+---
+
+Indica en días el tiempo que ha pasado entre el implante del aparato y su retirada, y es sin duda una de las variables más importantes del dataset. 
+
+```{r}
+library(ggplot2)
+ggplot(chuvi) +
+geom_histogram(aes(x=Tiempo.inicio.ultimo.seguimiento),
+binwidth=10, fill="gray")
+```
+
+Es curioso observar cómo se distribuye la población para esta variable. A pesar de todos los datos que nos faltan, parece indicar que vienen de dos poblaciones completamente distintas. 
+
+
+Tiempo desde el implante
+---
+
+```{r}
+library(ggplot2)
+library(scales)
+ggplot(chuvi) + geom_density(aes(x=Tiempo.desde.implante)) +
+scale_x_continuous(labels=time)
+```
+
+
+Tiempo hasta el último seguimiento
+---
+
+
+```{r}
+library(ggplot2)
+library(scales)
+ggplot(chuvi) + geom_density(aes(x=Tiempo.hasta.ultimo.seguimiento)) +
+scale_x_continuous(labels=time)
+```
+
+Cabe destacar que tenemos muy pocos valores para esta variable, pero para los valores que tenemos, se concentran más en los valores más pequeños: los que tienen menos tiempo hasta el último seguimiento. No es tan extraña si nos paramos a pensar que, en efecto, debe haber más citas cuanto más se acerca la cita en la que le retirarán el aparato, ya que esto es precisamente lo que nosotros queremos evitar. 
+
+Voltaje de la batería
+---
+
+```{r}
+library(ggplot2)
+library(scales)
+ggplot(chuvi) + geom_density(aes(x=Voltaje.bateria)) +
+scale_x_continuous()
+```
+
+Los resultados de esta exploración son extremadamente extraños. Lo normal sería que, a lo largo del tiempo, la batería fuera bajando de forma normal y por lo tanto tuviéramos una distribución normal. Sin embargo, lo que observamos es un pico muy alto un poco por encima de los 5V, tras lo cual tenemos otros dos picos locales en casi 6V y casi 6.5V. De nuevo, puede deberse a que nuestra población está especialmente concentrada entre los periodos más tempranos del seguimiento, pero aún así no explica por qué el pico mayor está tan concentrado en el centro de la gráfica. 
+
+
+Número de cámaras
+---
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=Camaras.factor), fill="gray")
+```
+
+Tenemoss muchos datos de 2 cámaras comparados con el resto.
+
+
+
+Variables derivadas
+---
+
+Supervivencia
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=Supervivencia.factor), fill="gray")
+```
+
+Apreciamos que la mayoría de las medidas caen en la categoría de "más de 18 meses". Sin embargo, la siguiente categoría que más valores tiene es la categoría NA, que significa valor desconocido. El número de estos valores desconocidos, al lado de las otras categorías, es demasiado elevado. 
+
+
+Variables de supervivencia
+---
+
+```{r}
+ggplot(chuvi) + geom_bar(aes(x=x3M.factor), fill="gray")
+ggplot(chuvi) + geom_bar(aes(x=x6M.factor), fill="gray")
+ggplot(chuvi) + geom_bar(aes(x=x12M.factor), fill="gray")
+ggplot(chuvi) + geom_bar(aes(x=x18M.factor), fill="gray")
+
+```
+
+Nos encontramos con el mismo problema que para la variable de Supervivencia, solo que en este caso el número de valores que falta es diferente para cada variable, siendo mayor cuanto mayor es el período de tiempo. También encontramos una gran diferencia entre la cantidad de "Sí" con respecto a los "No". Esto es comprensible si se achaca al hecho combinado de que los datos que nos faltan son en gran medida del último período de vida del aparato, y a que la mayoría de las citas tienen lugar mucho más que 18 meses antes de la retirada del aparato. 
+
+
+Relaciones entre variables
+---
+
+```{r}
+ggplot(chuvi, aes(x=Camaras.factor)) +
+geom_bar(aes(fill=Supervivencia.factor), position="fill") +
+geom_point(aes(y=-0.05), size=0.75, alpha=0.3,
+position=position_jitter(h=0.01))
+```
+
+Como podemos ver en los resultados, tanto para las cámaras de 1 como para las de 2, es categórico: o sobrevive más de 18 meses, o no sabemos cuánto sobrevive. Por otro lado, para el caso de la cámara de 3, tenemos un poco más de variedad. Esto nos puede presentar problemas a la hora de estudiar los datos
+
+
+
+

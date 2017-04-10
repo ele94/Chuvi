@@ -20,14 +20,14 @@ Sampling
 Obviamente, el primer paso es hacer un sampling de nuestros datos. Vamos a utilizar, ya que tenemos muy pocos datos, un 50% de los datos para el entrenamiento. 
 
 
-```{r}
+```{r cache=TRUE}
 chuvi$gp = runif(dim(chuvi)[1])
 testSet = subset(chuvi, chuvi$gp <= 0.5)
 trainingSet = subset(chuvi, chuvi$gp > 0.5)
 dim(testSet)[1]
 ```
 
-```{r}
+```{r cache=TRUE}
 dim(trainingSet)[1]
 ```
 
@@ -36,14 +36,14 @@ He borrado lo que venía a continuación porque era una burrada de texto y no tení
 
 El primer paso, antes de lo que hemos hecho ahí, sería crear los subsets con los campos donde no hay NAs. Tenemos una pista de cómo hacerlo así que no debería ser muy difícil. Vamos a probar.
 
-```{r}
+```{r cache=TRUE}
 testSet.fix = subset(testSet, is.na(testSet$Tiempo.hasta.ultimo.seguimiento) != T)
 testSet.fix = subset(testSet.fix, testSet.fix$Tiempo.hasta.ultimo.seguimiento != 0)
 dim(testSet.fix)
 testSet.fix
 ```
 
-```{r}
+```{r cache=TRUE}
 trainingSet.fix = subset(trainingSet, is.na(trainingSet$Tiempo.hasta.ultimo.seguimiento) != T)
 trainingSet.fix = subset(trainingSet.fix, trainingSet.fix$Tiempo.hasta.ultimo.seguimiento != 0)
 dim(trainingSet.fix)
@@ -57,7 +57,7 @@ Entrenamiento
 
 Ahora que ya tenemos los subests sin NAs pasamos a hacer el entrenamiento del modelo. A ver qué sale.
 
-```{r}
+```{r cache=TRUE}
 model <- lm(Tiempo.hasta.ultimo.seguimiento ~ Voltaje.bateria,data=trainingSet.fix)
 ```
 
@@ -65,7 +65,7 @@ Hmbueno, el modelo ha quedado entrenado por fin. Un gran avance desde ayer, eso 
 
 Ahora vemos el resultado del modelo, donde podemos apreciar los coeficientes.
 
-```{r}
+```{r cache=TRUE}
 summary(model)
 ```
 
@@ -76,7 +76,7 @@ Predicción
 
 Creamos nuevas variables para guardar los valores predecidos. 
 
-```{r}
+```{r cache=TRUE}
 testSet.fix$predTiempo.hasta.ultimo.seguimiento <- predict(model,newdata=testSet.fix)
 trainingSet.fix$predTiempo.hasta.ultimo.seguimiento <- predict(model,newdata=trainingSet.fix)
 ```
@@ -87,7 +87,7 @@ Predicción de los NAs que faltaban y un pequeño análisis de los resultados
 
 A mayores, vamos a entrenar también todos los valores que nos faltan usando el modelo de predicción. A ver qué sale.
 
-```{r}
+```{r cache=TRUE}
 correctSet = subset(chuvi, is.na(chuvi$Tiempo.hasta.ultimo.seguimiento))
 
 correctSet$Tiempo.hasta.ultimo.seguimiento <- predict(model,newdata=correctSet)
@@ -97,28 +97,28 @@ summary(correctSet$Tiempo.hasta.ultimo.seguimiento)
 
 Haciendo esto hemos eliminado todos los NAs. Ahora mismo seguramente tenemos valores distintos para la misma persona, pero tengo mucha curiosidad por ver qué sale si lo pinto. 
 
-```{r}
+```{r cache=TRUE}
 library(ggplot2)
 ggplot(correctSet) +
 geom_histogram(aes(x=Tiempo.hasta.ultimo.seguimiento),
 binwidth=50, fill="gray")
 ```
 
-```{r}
+```{r cache=TRUE}
 library(ggplot2)
 library(scales)
 ggplot(correctSet) + geom_density(aes(x=Tiempo.hasta.ultimo.seguimiento)) +
 scale_x_continuous(labels=time)
 ```
 
-```{r}
+```{r cache=TRUE}
 ggplot(correctSet, aes(x=Tiempo.hasta.ultimo.seguimiento, y=Voltaje.bateria)) +
 geom_point() + stat_smooth(method="lm") 
 ```
 
 Lol y si aquí queda tan bien por qué después me peta???? Vamos a probar a predecir en el mismo modelo entonces.
 
-```{r}
+```{r cache=TRUE}
 chuvi$Tiempo.hasta.ultimo.seguimiento.fix <- ifelse(is.na(chuvi$Tiempo.hasta.ultimo.seguimiento),predict(model,newdata=chuvi),chuvi$Tiempo.hasta.ultimo.seguimiento)
 
 summary(chuvi$Tiempo.hasta.ultimo.seguimiento.fix)
@@ -126,14 +126,14 @@ summary(chuvi$Tiempo.hasta.ultimo.seguimiento.fix)
 
 Ahora pintamos de nuevo las gráficas a ver qué ha salido esta vez
 
-```{r}
+```{r cache=TRUE}
 library(ggplot2)
 ggplot(chuvi) +
 geom_histogram(aes(x=Tiempo.hasta.ultimo.seguimiento.fix),
 binwidth=50, fill="gray")
 ```
 
-```{r}
+```{r cache=TRUE}
 ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento.fix, y=Voltaje.bateria)) +
 geom_point() + stat_smooth(method="lm") 
 ```
@@ -150,7 +150,7 @@ Gráfica
 
 Ahora pintamos los resultados de la predicción.
 
-```{r}
+```{r cache=TRUE}
 library(ggplot2)
 
 ggplot(data=testSet.fix,aes(x=predTiempo.hasta.ultimo.seguimiento,y=Tiempo.hasta.ultimo.seguimiento)) +
@@ -162,7 +162,7 @@ y=Tiempo.hasta.ultimo.seguimiento),color="blue",linetype=2)
 ```
 
 
-```{r}
+```{r cache=TRUE}
 library(ggplot2)
 
 ggplot(data=trainingSet.fix,aes(x=predTiempo.hasta.ultimo.seguimiento,y=Tiempo.hasta.ultimo.seguimiento)) +
@@ -176,12 +176,12 @@ y=Tiempo.hasta.ultimo.seguimiento),color="blue",linetype=2)
 R cuadrado
 ---
 
-```{r}
+```{r cache=TRUE}
 rsq <- function(y,f) { 1 - sum((y-f)^2)/sum((y-mean(y))^2) }
 rsq(trainingSet.fix$Tiempo.hasta.ultimo.seguimiento,predict(model,newdata=trainingSet.fix))
 ```
 
-```{r}
+```{r cache=TRUE}
 rsq(testSet.fix$Tiempo.hasta.ultimo.seguimiento,predict(model,newdata=testSet.fix))
 ```
 
@@ -189,12 +189,12 @@ Nuestro objetivo es que este valor sea lo más alto posible, con 1 siendo el máxi
 
 Root mean square error
 ---
-```{r}
+```{r cache=TRUE}
 rmse <- function(y, f) { sqrt(mean( (y-f)^2 )) }
 rmse(trainingSet.fix$Tiempo.hasta.ultimo.seguimiento,predict(model,newdata=trainingSet.fix))
 ```
 
-```{r}
+```{r cache=TRUE}
 rmse(testSet.fix$Tiempo.hasta.ultimo.seguimiento,predict(model,newdata=testSet.fix))
 ```
 
@@ -203,11 +203,11 @@ No sé qué significan estos errores pero no me gusta nada el valor tan elevado qu
 Coeficientes
 ---
 
-```{r}
+```{r cache=TRUE}
 coefficients(model)
 ```
 
-```{r}
+```{r cache=TRUE}
 summary(model)
 ```
 
@@ -222,13 +222,13 @@ Ahora vamos a infer, a partir de los datos que ya hemos calculado, el tiempo ent
 Tiempo entre inicio y fin
 ---
 
-```{r}
+```{r cache=TRUE}
 chuvi$Tiempo.inicio.ultimo.seguimiento.fix = ifelse(is.na(chuvi$Tiempo.inicio.ultimo.seguimiento),(chuvi$Tiempo.desde.implante+chuvi$Tiempo.hasta.ultimo.seguimiento.fix),chuvi$Tiempo.inicio.ultimo.seguimiento)
 
 summary(chuvi$Tiempo.inicio.ultimo.seguimiento.fix)
 ```
 
-```{r}
+```{r cache=TRUE}
 library(ggplot2)
 ggplot(chuvi) +
 geom_histogram(aes(x=Tiempo.inicio.ultimo.seguimiento.fix),
@@ -243,7 +243,7 @@ Supervivencia
 
 Vamos a añadir los valores que faltan al factor de la supervivencia. Para ello, copiamos los pasos que tenemos en la otra libreta.
 
-```{r}
+```{r cache=TRUE}
 breaks = c(0,89,179,359,539,4000)
 Supervivencia.cor = cut(chuvi$Tiempo.hasta.ultimo.seguimiento.fix, breaks=breaks, labels=c("menos de 3", "entre 6 y 3 ", "entre 12 y 6", "entre 18 y 12", "más de 18"), include.lowest=T)
 Supervivencia.cor = as.character(Supervivencia.cor)
@@ -256,12 +256,12 @@ summary(chuvi$Supervivencia.factor.fix)
 ```
 
 Estos resultados no me convencen demasiado, pero es lo que hay y son con los que tenemos que trabajar. 
-```{r}
+```{r cache=TRUE}
 ggplot(chuvi) + geom_bar(aes(x=Supervivencia.factor.fix), fill="gray")
 
 ```
 
-```{r}
+```{r cache=TRUE}
 ggplot(chuvi, aes(x=Camaras.factor)) +
 geom_bar(aes(fill=Supervivencia.factor.fix), position="fill") +
 geom_point(aes(y=-0.05), size=0.75, alpha=0.3,
@@ -276,7 +276,7 @@ Ahora corregiremos los meses
 Meses
 ---
 
-```{r}
+```{r cache=TRUE}
 chuvi$x3M.fix = as.character(chuvi$x3M.factor)
 
 Sup.3.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 89, "NO", "SI")
@@ -286,7 +286,7 @@ chuvi$x3M.fix = as.factor(chuvi$x3M.fix)
 summary(chuvi$x3M.fix)
 ```
 
-```{r}
+```{r cache=TRUE}
 chuvi$x6M.fix = as.character(chuvi$x6M.factor)
 
 Sup.6.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 179, "NO", "SI")
@@ -296,7 +296,7 @@ chuvi$x6M.fix = as.factor(chuvi$x6M.fix)
 summary(chuvi$x6M.fix)
 ```
 
-```{r}
+```{r cache=TRUE}
 chuvi$x12M.fix = as.character(chuvi$x12M.factor)
 
 Sup.12.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 359, "NO", "SI")
@@ -306,7 +306,7 @@ chuvi$x12M.fix = as.factor(chuvi$x12M.fix)
 summary(chuvi$x12M.fix)
 ```
 
-```{r}
+```{r cache=TRUE}
 chuvi$x18M.fix = as.character(chuvi$x18M.factor)
 
 Sup.18.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 89, "NO", "SI")
@@ -322,19 +322,19 @@ Exploración de datos
 ---
 
 
-```{r}
+```{r cache=TRUE}
 ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento.fix, y=Voltaje.bateria)) +
 geom_point() + geom_smooth()
 ```
 
 
-```{r}
+```{r cache=TRUE}
 library(ggplot2)
 ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento.fix, y=Choque.fix)) + geom_point() + stat_smooth(method="lm") 
 ```
 
 
-```{r}
+```{r cache=TRUE}
 library(ggplot2)
 ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento.fix, y=STIMA.fix)) + geom_point() + stat_smooth(method="lm") 
 ```
