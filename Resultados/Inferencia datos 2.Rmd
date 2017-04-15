@@ -216,7 +216,7 @@ Supervivencia
 
 
 ```{r}
-breaks = c(0,89,179,359,539,6000)
+breaks = c(-100,89,179,359,539,6000)
 Supervivencia.cor = cut(chuvi$Tiempo.hasta.ultimo.seguimiento.fix, breaks=breaks, labels=c("menos de 3", "entre 6 y 3 ", "entre 12 y 6", "entre 18 y 12", "más de 18"), include.lowest=T)
 Supervivencia.cor = as.character(Supervivencia.cor)
 
@@ -297,6 +297,20 @@ ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento.fix, y=Voltaje.bateria)) +
 geom_point() + geom_smooth()
 ```
 
+```{r}
+chuvi.subset = subset(chuvi,Tiempo.hasta.ultimo.seguimiento.fix > 0)
+ggplot(chuvi.subset, aes(x=exp(Tiempo.hasta.ultimo.seguimiento.fix), y=Voltaje.bateria)) +
+geom_point() + geom_smooth()
+```
+
+
+
+
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.desde.implante, y=Tiempo.hasta.ultimo.seguimiento.fix)) +
+geom_point() + stat_smooth(method="lm") 
+```
 
 ```{r}
 library(ggplot2)

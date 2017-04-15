@@ -3,7 +3,7 @@ title: "Informe: Exploracion de los datos"
 output: html_notebook
 ---
 
-Esta libreta se corresponde con la conitnuación de la Preparación de Datos de Chuvi.
+Esta libreta se corresponde con la continuación de la Preparación de Datos de Chuvi.
 
 
 Vemos los datos con los que nos encontramos. 

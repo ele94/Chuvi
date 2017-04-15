@@ -1,0 +1,276 @@
+---
+title: "Modelado 3 meses"
+output: html_notebook
+---
+
+Modelo naive
+---
+
+###Sampling 
+
+Hemos pasado el sampling a otra libreta de preparación de datos. De esta forma intentamos que el sampling sea el mismo para todos los modelos, evitando así posible overfitting.
+
+###Modelado
+
+####Fórmula
+
+En primer lugar, creamos la fórmula que vamos a usar.
+
+```{r}
+programados <- c("Camaras.factor","Frecuencia.min","R")
+temporales <- c("Tiempo.desde.implante", "Voltaje.bateria",
+"STIMA.fix","STIMVD.fix","STIMVI.fix","Choque.fix","ATP.fix","Episodios.factor")
+y <- "x3M.fix"
+x <- c(programados,
+temporales)
+fmla <- paste(y, paste(x, collapse="+"), sep="~")
+print(fmla)
+```
+
+####Modelado
+
+En segundo lugar, la aplicamos al modelo.
+```{r}
+model <- glm(fmla, data=trainingSet, family=binomial(link="logit"))
+model
+```
+
+####Entrenamiento
+
+Entrenamos con los datos.
+
+```{r}
+trainingSet$pred <- predict(model, newdata=trainingSet, type="response")
+testSet$pred <- predict(model, newdata=testSet, type="response")
+```
+
+Y miramos los resultados.
+
+```{r}
+library(ggplot2)
+ggplot(trainingSet, aes(x=pred, color=x3M.fix, linetype=x3M.fix)) +
+geom_density()
+```
+
+
+####Precisión y recall
+
+
+```{r}
+library(ggplot2)
+library(ROCR)
+```
+
+```{r}
+library(grid)
+predObj <- prediction(trainingSet$pred, trainingSet$x3M.fix)
+precObj <- performance(predObj, measure="prec")
+recObj <- performance(predObj, measure="rec")
+precision <- (precObj@y.values)[[1]]
+prec.x <- (precObj@x.values)[[1]]
+recall <- (recObj@y.values)[[1]]
+rocFrame <- data.frame(threshold=prec.x, precision=precision,
+recall=recall)
+nplot <- function(plist) {
+n <- length(plist)
+grid.newpage()
+pushViewport(viewport(layout=grid.layout(n,1)))
+vplayout=function(x,y) {viewport(layout.pos.row=x, layout.pos.col=y)}
+for(i in 1:n) {
+print(plist[[i]], vp=vplayout(i,1))
+}
+}
+pnull <-
+mean(as.numeric(trainingSet$x3M.fix))
+p1 <- ggplot(rocFrame, aes(x=threshold)) +
+geom_line(aes(y=precision/pnull)) +
+coord_cartesian(xlim = c(0,1), ylim=c(0,1) )
+p2 <- ggplot(rocFrame, aes(x=threshold)) +
+geom_line(aes(y=recall)) +
+coord_cartesian(xlim = c(0,1) )
+nplot(list(p1, p2))
+```
+
+###EValuación
+
+Para poder evaluar tenemos que elegir un treshold. Escogeremos en ambos un treshold de 0.60 para hacer las pruebas. 
+
+####Tabla de verdad
+
+Tabla de verdad
+
+```{r}
+ctab.test <- table(pred=testSet$pred>0.60, x3M.fix=testSet$x3M.fix)
+ctab.test
+```
+
+####Precisión
+
+Precisión.
+
+```{r}
+precision <- ctab.test[2,2]/sum(ctab.test[2,])
+precision
+```
+
+La precisión es bastante alta. 
+
+####Recall
+
+Recall.
+
+```{r}
+recall <- ctab.test[2,2]/sum(ctab.test[,2])
+recall
+```
+
+El recall también es bastante alto. 
+
+####Enrich
+
+Enrich
+
+```{r}
+enrich <- precision/mean(as.numeric(testSet$x3M.fix))
+enrich
+```
+
+Lo identifica a una tasa de 0.5 veces mayor que el overall range? Qué significa eso?
+
+####Coeficientes
+
+```{r}
+coefficients(model)
+```
+
+####Análisis del modelo
+
+```{r}
+summary(model)
+```
+
+Solo podemos fiarnos de los p-values cuyo valor sea menor de 0.05. En este caso podemos ver que los únicos que lo cumplen son el tiempo desde el implante y el voltaje de la batería. Teniendo en cuenta lo bien "fitteado" que está, podría deberse a que tenemos correlaciones cruzadas. 
+
+
+
+
+##Modelado tras el análisis
+
+####Fórmula
+
+
+```{r}
+programados <- c("Tiempo.desde.implante")
+temporales <- c("Voltaje.bateria")
+y <- "x3M.fix"
+x <- c(programados,
+temporales)
+fmla <- paste(y, paste(x, collapse="+"), sep="~")
+print(fmla)
+```
+
+####Modelado
+
+En segundo lugar, la aplicamos al modelo.
+```{r}
+model <- glm(fmla, data=trainingSet, family=binomial(link="logit"))
+model
+```
+
+
+```{r}
+trainingSet$pred <- predict(model, newdata=trainingSet, type="response")
+testSet$pred <- predict(model, newdata=testSet, type="response")
+```
+
+Y miramos los resultados.
+
+```{r}
+library(ggplot2)
+ggplot(trainingSet, aes(x=pred, color=x3M.fix, linetype=x3M.fix)) +
+geom_density()
+```
+
+
+```{r}
+library(grid)
+predObj <- prediction(trainingSet$pred, trainingSet$x3M.fix)
+precObj <- performance(predObj, measure="prec")
+recObj <- performance(predObj, measure="rec")
+precision <- (precObj@y.values)[[1]]
+prec.x <- (precObj@x.values)[[1]]
+recall <- (recObj@y.values)[[1]]
+rocFrame <- data.frame(threshold=prec.x, precision=precision,
+recall=recall)
+nplot <- function(plist) {
+n <- length(plist)
+grid.newpage()
+pushViewport(viewport(layout=grid.layout(n,1)))
+vplayout=function(x,y) {viewport(layout.pos.row=x, layout.pos.col=y)}
+for(i in 1:n) {
+print(plist[[i]], vp=vplayout(i,1))
+}
+}
+pnull <-
+mean(as.numeric(trainingSet$x3M.fix))
+p1 <- ggplot(rocFrame, aes(x=threshold)) +
+geom_line(aes(y=precision/pnull)) +
+coord_cartesian(xlim = c(0,1), ylim=c(0,1) )
+p2 <- ggplot(rocFrame, aes(x=threshold)) +
+geom_line(aes(y=recall)) +
+coord_cartesian(xlim = c(0,1) )
+nplot(list(p1, p2))
+```
+
+
+
+##EValuación
+
+Para poder evaluar tenemos que elegir un treshold. Escogeremos en ambos un treshold de 0.60 para hacer las pruebas. 
+
+Tabla de verdad
+
+```{r}
+ctab.test <- table(pred=testSet$pred>0.60, x3M.fix=testSet$x3M.fix)
+ctab.test
+```
+
+Precisión.
+
+```{r}
+precision <- ctab.test[2,2]/sum(ctab.test[2,])
+precision
+```
+
+La precisión es bastante alta. 
+
+Recall.
+
+```{r}
+recall <- ctab.test[2,2]/sum(ctab.test[,2])
+recall
+```
+
+El recall es más alto que en el caso anterior para el mismo coeficiente. 
+
+Enrich
+
+```{r}
+enrich <- precision/mean(as.numeric(testSet$x3M.fix))
+enrich
+```
+
+Lo identifica a una tasa de 0.5 veces mayor que el overall range? Qué significa eso?
+
+##Evaluando el modelo
+
+```{r}
+coefficients(model)
+```
+
+
+```{r}
+summary(model)
+```
+
+Los p-values son muy bajos así que nos pdoemos fiar de ellos. 

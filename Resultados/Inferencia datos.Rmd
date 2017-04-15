@@ -119,7 +119,10 @@ geom_point() + stat_smooth(method="lm")
 Lol y si aquí queda tan bien por qué después me peta???? Vamos a probar a predecir en el mismo modelo entonces.
 
 ```{r cache=TRUE}
+
 chuvi$Tiempo.hasta.ultimo.seguimiento.fix <- ifelse(is.na(chuvi$Tiempo.hasta.ultimo.seguimiento),predict(model,newdata=chuvi),chuvi$Tiempo.hasta.ultimo.seguimiento)
+
+chuvi$Tiempo.hasta.ultimo.seguimiento.fix <- ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 0, 0, chuvi$Tiempo.hasta.ultimo.seguimiento.fix)
 
 summary(chuvi$Tiempo.hasta.ultimo.seguimiento.fix)
 ```
@@ -132,6 +135,7 @@ ggplot(chuvi) +
 geom_histogram(aes(x=Tiempo.hasta.ultimo.seguimiento.fix),
 binwidth=50, fill="gray")
 ```
+
 
 ```{r cache=TRUE}
 ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento.fix, y=Voltaje.bateria)) +
@@ -327,6 +331,11 @@ ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento.fix, y=Voltaje.bateria)) +
 geom_point() + geom_smooth()
 ```
 
+```{r}
+library(ggplot2)
+ggplot(chuvi, aes(x=Tiempo.desde.implante, y=Tiempo.hasta.ultimo.seguimiento.fix)) +
+geom_point() + stat_smooth(method="lm") 
+```
 
 ```{r cache=TRUE}
 library(ggplot2)
@@ -334,7 +343,7 @@ ggplot(chuvi, aes(x=Tiempo.hasta.ultimo.seguimiento.fix, y=Choque.fix)) + geom_p
 ```
 
 
-```{r cache=TRUE}
+```{r cache=TRUE }
 library(ggplot2)
 ggplot(chuvi, aes(x=Tiempo.inicio.ultimo.seguimiento.fix, y=STIMA.fix)) + geom_point() + stat_smooth(method="lm") 
 ```

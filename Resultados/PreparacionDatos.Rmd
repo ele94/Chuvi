@@ -4,6 +4,9 @@ output: html_notebook
 ---
 
 Ejecutando el siguiente código preparamos los datos para trabajar con ellos.
+
+##Formateo de los campos
+
 ```{r tidy=TRUE}
 install.packages("readxl")
 
@@ -16,12 +19,12 @@ colnames(chuvi) = c("SN","Camaras","Modelo","Fecha.implante","Tiempo.inicio.ulti
 
 chuvi$Camaras.factor <- as.factor(ifelse(chuvi$Camaras==1,1,ifelse(chuvi$Camaras==2,2,3)))
 
-chuvi$ERI.alcanzado.factor = as.factor(ifelse(chuvi$ERI.alcanzado=="Si","SI","NO"))
+chuvi$ERI.alcanzado.factor = as.factor(ifelse(chuvi$ERI.alcanzado=="Si",TRUE,FALSE))
 
-chuvi$x3M.factor = as.factor(ifelse(chuvi$x3M==0,"NO","SI"))
-chuvi$x6M.factor = as.factor(ifelse(chuvi$x6M==0,"NO","SI"))
-chuvi$x12M.factor = as.factor(ifelse(chuvi$x12M==0,"NO","SI"))
-chuvi$x18M.factor = as.factor(ifelse(chuvi$x18M==0,"NO","SI"))
+chuvi$x3M.factor = as.factor(ifelse(chuvi$x3M==0,FALSE,TRUE))
+chuvi$x6M.factor = as.factor(ifelse(chuvi$x6M==0,FALSE,TRUE))
+chuvi$x12M.factor = as.factor(ifelse(chuvi$x12M==0,FALSE,TRUE))
+chuvi$x18M.factor = as.factor(ifelse(chuvi$x18M==0,FALSE,TRUE))
 chuvi$Supervivencia.factor = as.factor(chuvi$Supervivencia)
 chuvi$R.factor = as.factor(chuvi$R)
 chuvi$VA.factor = as.factor(chuvi$VA)
@@ -30,11 +33,12 @@ chuvi$VD.factor = as.factor(chuvi$VD)
 chuvi$MSVD.factor = as.factor(chuvi$MSVD)
 chuvi$VI.factor = as.factor(chuvi$VI)
 chuvi$MSVI.factor = as.factor(chuvi$MSVI)
-chuvi$Episodios.factor = as.factor(ifelse(chuvi$Episodios==0,"NO","SI"))
+chuvi$Episodios.factor = as.factor(ifelse(chuvi$Episodios==0,FALSE,TRUE))
 
 ```
 
-A continuación, corregimos los datos, sustituyendo NAs por lo que corresponda. 
+##Corrección de NAs: sustitución por 0
+
 ```{r tidy=TRUE}
 chuvi$STIMA.fix = ifelse(is.na(chuvi$STIMA),0,chuvi$STIMA)
 chuvi$MSA.fix = ifelse(is.na(chuvi$MSA),0,chuvi$MSA)
@@ -51,4 +55,116 @@ chuvi$ATP.fix = ifelse(is.na(chuvi$ATP),0,chuvi$ATP)
 
 ```
 
+
+##Sampling
+
+Creamos los datasets de training y de prueba para crear el modelo con el que inferiremos los datos.
+
+```{r cache=TRUE}
+chuvi$gp = runif(dim(chuvi)[1])
+testSet = subset(chuvi, chuvi$gp <= 0.5)
+trainingSet = subset(chuvi, chuvi$gp > 0.5)
+dim(testSet)[1]
+```
+
+```{r cache=TRUE}
+dim(trainingSet)[1]
+```
+
+##Inferencia de NAs: sustitución por valores de los que dependen
+
+```{r}
+testSet.fix = subset(testSet, is.na(testSet$Tiempo.hasta.ultimo.seguimiento) != T)
+testSet.fix = subset(testSet.fix, testSet.fix$Tiempo.hasta.ultimo.seguimiento != 0)
+
+trainingSet.fix = subset(trainingSet, is.na(trainingSet$Tiempo.hasta.ultimo.seguimiento) != T)
+trainingSet.fix = subset(trainingSet.fix, trainingSet.fix$Tiempo.hasta.ultimo.seguimiento != 0)
+```
+
+```{r cache=TRUE}
+model <- lm(Tiempo.hasta.ultimo.seguimiento ~ Voltaje.bateria,data=trainingSet.fix)
+```
+
+```{r cache=TRUE}
+testSet.fix$predTiempo.hasta.ultimo.seguimiento <- predict(model,newdata=testSet.fix)
+trainingSet.fix$predTiempo.hasta.ultimo.seguimiento <- predict(model,newdata=trainingSet.fix)
+```
+
+```{r}
+correctSet = subset(chuvi, is.na(chuvi$Tiempo.hasta.ultimo.seguimiento))
+
+correctSet$Tiempo.hasta.ultimo.seguimiento <- predict(model,newdata=correctSet)
+```
+
+```{r}
+chuvi$Tiempo.hasta.ultimo.seguimiento.fix <- ifelse(is.na(chuvi$Tiempo.hasta.ultimo.seguimiento),predict(model,newdata=chuvi),chuvi$Tiempo.hasta.ultimo.seguimiento)
+
+chuvi$Tiempo.hasta.ultimo.seguimiento.fix <- ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 0, 0, chuvi$Tiempo.hasta.ultimo.seguimiento.fix)
+```
+
+####Inferencia
+
+```{r}
+chuvi$Tiempo.inicio.ultimo.seguimiento.fix = ifelse(is.na(chuvi$Tiempo.inicio.ultimo.seguimiento),(chuvi$Tiempo.desde.implante+chuvi$Tiempo.hasta.ultimo.seguimiento.fix),chuvi$Tiempo.inicio.ultimo.seguimiento)
+```
+
+```{r}
+breaks = c(-1000,89,179,359,539,4000)
+Supervivencia.cor = cut(chuvi$Tiempo.hasta.ultimo.seguimiento.fix, breaks=breaks, labels=c("menos de 3", "entre 6 y 3 ", "entre 12 y 6", "entre 18 y 12", "más de 18"), include.lowest=T)
+Supervivencia.cor = as.character(Supervivencia.cor)
+
+chuvi$Supervivencia.factor = as.character(chuvi$Supervivencia.factor)
+chuvi$Supervivencia.factor.fix = ifelse(is.na(chuvi$Supervivencia.factor),Supervivencia.cor,chuvi$Supervivencia.factor)
+
+chuvi$Supervivencia.factor.fix = as.factor(chuvi$Supervivencia.factor.fix)
+```
+
+```{r}
+#3 meses
+chuvi$x3M.fix = as.character(chuvi$x3M.factor)
+
+Sup.3.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 89, FALSE, TRUE)
+
+chuvi$x3M.fix = ifelse(is.na(chuvi$x3M.fix),Sup.3.M,chuvi$x3M.fix)
+chuvi$x3M.fix = as.factor(chuvi$x3M.fix)
+
+#6 meses
+chuvi$x6M.fix = as.character(chuvi$x6M.factor)
+
+Sup.6.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 179, FALSE, TRUE)
+
+chuvi$x6M.fix = ifelse(is.na(chuvi$x6M.fix),Sup.6.M,chuvi$x6M.fix)
+chuvi$x6M.fix = as.factor(chuvi$x6M.fix)
+
+#12 meses
+chuvi$x12M.fix = as.character(chuvi$x12M.factor)
+
+Sup.12.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 359, FALSE, TRUE)
+
+chuvi$x12M.fix = ifelse(is.na(chuvi$x12M.fix),Sup.12.M,chuvi$x12M.fix)
+chuvi$x12M.fix = as.factor(chuvi$x12M.fix)
+
+#18 meses
+chuvi$x18M.fix = as.character(chuvi$x18M.factor)
+
+Sup.18.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 89, FALSE, TRUE)
+
+chuvi$x18M.fix = ifelse(is.na(chuvi$x18M.fix),Sup.18.M,chuvi$x18M.fix)
+chuvi$x18M.fix = as.factor(chuvi$x18M.fix)
+```
+
+##Nuevo sampling
+
+Una vez tenemos las variables nuevas tenemos que volvera crear el sampling.
+
+```{r cache=TRUE}
+chuvi$gp = runif(dim(chuvi)[1])
+testSet = subset(chuvi, chuvi$gp <= 0.7)
+trainingSet = subset(chuvi, chuvi$gp > 0.7)
+dim(testSet)[1]
+```
+
+```{r cache=TRUE}
+dim(trainingSet)[1]
+```
 

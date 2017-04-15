@@ -1,0 +1,68 @@
+---
+title: "Predecir"
+output: html_notebook
+---
+
+```{r}
+programados <- c("Tiempo.desde.implante")
+temporales <- c("Voltaje.bateria")
+y <- "x3M.fix"
+x <- c(programados,
+temporales)
+fmla3 <- paste(y, paste(x, collapse="+"), sep="~")
+print(fmla3)
+
+y <- "x6M.fix"
+fmla6 <- paste(y, paste(x, collapse="+"), sep="~")
+print(fmla6)
+
+y <- "x12M.fix"
+fmla12 <- paste(y, paste(x, collapse="+"), sep="~")
+print(fmla12)
+
+y <- "x18M.fix"
+fmla18 <- paste(y, paste(x, collapse="+"), sep="~")
+print(fmla18)
+```
+
+```{r}
+model3 <- glm(fmla3, data=trainingSet, family=binomial(link="logit"))
+
+model6 <- glm(fmla6, data=trainingSet, family=binomial(link="logit"))
+
+model12 <- glm(fmla12, data=trainingSet, family=binomial(link="logit"))
+
+model18 <- glm(fmla18, data=trainingSet, family=binomial(link="logit"))
+
+```
+
+
+```{r}
+newdata = data.frame(Voltaje.bateria = 5.0, Tiempo.desde.implante = 1000)
+```
+
+
+```{r}
+predict(model3, newdata, type="response")
+```
+
+```{r}
+predict(model6, newdata, type="response")
+```
+
+
+```{r}
+predict(model12, newdata, type="response")
+```
+
+```{r}
+predict(model18, newdata, type="response")
+```
+
+
+
+
+
+
+
+
