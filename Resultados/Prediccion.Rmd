@@ -38,7 +38,7 @@ model18 <- glm(fmla18, data=trainingSet, family=binomial(link="logit"))
 
 
 ```{r}
-newdata = data.frame(Voltaje.bateria = 5.0, Tiempo.desde.implante = 1000)
+newdata = data.frame(Voltaje.bateria = 5.07, Tiempo.desde.implante = 2188)
 ```
 
 
