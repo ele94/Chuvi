@@ -357,7 +357,7 @@ nplot(list(p1, p2))
 Escogemos un treshold de 0.30.
 
 ```{r}
-ctab.test <- table(pred=testSet$pred>0.30, x18M.fix=testSet$x18M.fix)
+ctab.test <- table(pred=testSet$pred>0.75, x18M.fix=testSet$x18M.fix)
 ctab.test
 ```
 
