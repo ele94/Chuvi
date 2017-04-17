@@ -260,7 +260,7 @@ No parece que el tiempo desde el implante sea relevante, así que haremos un segu
 
 
 
-Modelado tras el primer análisis
+Modelado solo con el voltaje de la batería
 ---
 
 ####Fórmula

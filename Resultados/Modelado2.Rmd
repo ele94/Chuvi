@@ -15,7 +15,7 @@ Modelo naive
 ```{r}
 programados <- c("Camaras.factor","Frecuencia.min","R")
 temporales <- c("Tiempo.desde.implante", "Voltaje.bateria",
-"STIMA.fix","STIMVD.fix","STIMVI.fix","Choque.fix","ATP.fix","Episodios")
+"STIMA.fix","STIMVD.fix","STIMVI.fix","Choque.fix","ATP.fix","Episodios.factor")
 y <- "x18M.fix"
 x <- c(programados,
 temporales)
@@ -136,7 +136,14 @@ Solo podemos fiarnos de los p-values cuyo valor sea menor de 0.05. En este caso 
 
 
 
-##Datos tras realizar el modelado correcto
+
+
+
+
+
+
+Datos tras realizar el modelado correcto
+---
 
 
 ```{r}
@@ -209,7 +216,7 @@ Para poder evaluar tenemos que elegir un treshold. Escogeremos en ambos un tresh
 Tabla de verdad
 
 ```{r}
-ctab.test <- table(pred=testSet$pred>0.35, x18M.fix=testSet$x18M.fix)
+ctab.test <- table(pred=testSet$pred>0.6, x18M.fix=testSet$x18M.fix)
 ctab.test
 ```
 
@@ -252,3 +259,148 @@ summary(model)
 ```
 
 Los p-values son muy bajos así que nos pdoemos fiar de ellos.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Modelado solo con el voltaje de la batería
+---
+
+####Fórmula
+
+
+```{r}
+temporales <- c("Voltaje.bateria")
+y <- "x18M.fix"
+x <- c(temporales)
+fmla <- paste(y, paste(x, collapse="+"), sep="~")
+print(fmla)
+```
+
+####Modelado
+
+```{r}
+model <- glm(fmla, data=trainingSet, family=binomial(link="logit"))
+model
+```
+
+Nos vuelve a pasar lo de la fitted probability. Tenemos que asumir que se debe a la poca cantidad de datos. 
+
+
+```{r}
+trainingSet$pred <- predict(model, newdata=trainingSet, type="response")
+testSet$pred <- predict(model, newdata=testSet, type="response")
+```
+
+####Resultados
+
+```{r}
+library(ggplot2)
+ggplot(trainingSet, aes(x=pred, color=x18M.fix, linetype=x18M.fix)) +
+geom_density()
+```
+
+La gráfica es de mejor calidad que la que obtuvimos en la versión anterior. Es, desde luego, una mejora.
+
+```{r}
+library(grid)
+predObj <- prediction(trainingSet$pred, trainingSet$x18M.fix)
+precObj <- performance(predObj, measure="prec")
+recObj <- performance(predObj, measure="rec")
+precision <- (precObj@y.values)[[1]]
+prec.x <- (precObj@x.values)[[1]]
+recall <- (recObj@y.values)[[1]]
+rocFrame <- data.frame(threshold=prec.x, precision=precision,
+recall=recall)
+nplot <- function(plist) {
+n <- length(plist)
+grid.newpage()
+pushViewport(viewport(layout=grid.layout(n,1)))
+vplayout=function(x,y) {viewport(layout.pos.row=x, layout.pos.col=y)}
+for(i in 1:n) {
+print(plist[[i]], vp=vplayout(i,1))
+}
+}
+pnull <-
+mean(as.numeric(trainingSet$x18M.fix))
+p1 <- ggplot(rocFrame, aes(x=threshold)) +
+geom_line(aes(y=precision/pnull)) +
+coord_cartesian(xlim = c(0,1), ylim=c(0,1) )
+p2 <- ggplot(rocFrame, aes(x=threshold)) +
+geom_line(aes(y=recall)) +
+coord_cartesian(xlim = c(0,1) )
+nplot(list(p1, p2))
+```
+
+
+##EValuación
+
+####Tabla de 
+
+Escogemos un treshold de 0.30.
+
+```{r}
+ctab.test <- table(pred=testSet$pred>0.30, x18M.fix=testSet$x18M.fix)
+ctab.test
+```
+
+####Precisión
+
+```{r}
+precision <- ctab.test[2,2]/sum(ctab.test[2,])
+precision
+```
+
+####Recall
+
+```{r}
+recall <- ctab.test[2,2]/sum(ctab.test[,2])
+recall
+```
+
+####Enrich
+
+```{r}
+enrich <- precision/mean(as.numeric(testSet$x18M.fix))
+enrich
+```
+
+
+##Evaluando el modelo
+
+####Coeficientes
+
+```{r}
+coefficients(model)
+```
+
+####Modelo
+
+```{r}
+summary(model)
+```
+
+Probamos a predecir algunos valores
+
+
+```{r}
+newdata = data.frame(Voltaje.bateria = 6.0, Tiempo.desde.implante = 1000)
+predict(model, newdata, type="response")
+```

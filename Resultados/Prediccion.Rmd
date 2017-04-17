@@ -4,11 +4,9 @@ output: html_notebook
 ---
 
 ```{r}
-programados <- c("Tiempo.desde.implante")
 temporales <- c("Voltaje.bateria")
 y <- "x3M.fix"
-x <- c(programados,
-temporales)
+x <- c(temporales)
 fmla3 <- paste(y, paste(x, collapse="+"), sep="~")
 print(fmla3)
 

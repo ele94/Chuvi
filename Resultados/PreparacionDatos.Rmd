@@ -73,7 +73,7 @@ dim(trainingSet)[1]
 
 ##Inferencia de NAs: sustitución por valores de los que dependen
 
-```{r}
+```{r cache=TRUE}
 testSet.fix = subset(testSet, is.na(testSet$Tiempo.hasta.ultimo.seguimiento) != T)
 testSet.fix = subset(testSet.fix, testSet.fix$Tiempo.hasta.ultimo.seguimiento != 0)
 
@@ -90,13 +90,13 @@ testSet.fix$predTiempo.hasta.ultimo.seguimiento <- predict(model,newdata=testSet
 trainingSet.fix$predTiempo.hasta.ultimo.seguimiento <- predict(model,newdata=trainingSet.fix)
 ```
 
-```{r}
+```{r cache=TRUE}
 correctSet = subset(chuvi, is.na(chuvi$Tiempo.hasta.ultimo.seguimiento))
 
 correctSet$Tiempo.hasta.ultimo.seguimiento <- predict(model,newdata=correctSet)
 ```
 
-```{r}
+```{r cache=TRUE}
 chuvi$Tiempo.hasta.ultimo.seguimiento.fix <- ifelse(is.na(chuvi$Tiempo.hasta.ultimo.seguimiento),predict(model,newdata=chuvi),chuvi$Tiempo.hasta.ultimo.seguimiento)
 
 chuvi$Tiempo.hasta.ultimo.seguimiento.fix <- ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 0, 0, chuvi$Tiempo.hasta.ultimo.seguimiento.fix)
@@ -104,11 +104,11 @@ chuvi$Tiempo.hasta.ultimo.seguimiento.fix <- ifelse(chuvi$Tiempo.hasta.ultimo.se
 
 ####Inferencia
 
-```{r}
+```{r cache=TRUE}
 chuvi$Tiempo.inicio.ultimo.seguimiento.fix = ifelse(is.na(chuvi$Tiempo.inicio.ultimo.seguimiento),(chuvi$Tiempo.desde.implante+chuvi$Tiempo.hasta.ultimo.seguimiento.fix),chuvi$Tiempo.inicio.ultimo.seguimiento)
 ```
 
-```{r}
+```{r cache=TRUE}
 breaks = c(-1000,89,179,359,539,4000)
 Supervivencia.cor = cut(chuvi$Tiempo.hasta.ultimo.seguimiento.fix, breaks=breaks, labels=c("menos de 3", "entre 6 y 3 ", "entre 12 y 6", "entre 18 y 12", "más de 18"), include.lowest=T)
 Supervivencia.cor = as.character(Supervivencia.cor)
@@ -119,7 +119,7 @@ chuvi$Supervivencia.factor.fix = ifelse(is.na(chuvi$Supervivencia.factor),Superv
 chuvi$Supervivencia.factor.fix = as.factor(chuvi$Supervivencia.factor.fix)
 ```
 
-```{r}
+```{r cache=TRUE}
 #3 meses
 chuvi$x3M.fix = as.character(chuvi$x3M.factor)
 
@@ -147,7 +147,7 @@ chuvi$x12M.fix = as.factor(chuvi$x12M.fix)
 #18 meses
 chuvi$x18M.fix = as.character(chuvi$x18M.factor)
 
-Sup.18.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 89, FALSE, TRUE)
+Sup.18.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 539, FALSE, TRUE)
 
 chuvi$x18M.fix = ifelse(is.na(chuvi$x18M.fix),Sup.18.M,chuvi$x18M.fix)
 chuvi$x18M.fix = as.factor(chuvi$x18M.fix)

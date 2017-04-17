@@ -1,0 +1,51 @@
+---
+title: "Prueba"
+output: html_notebook
+---
+
+```{r}
+library(survival)
+
+```
+
+```{r}
+chuvi$retirado = ifelse((chuvi$Tiempo.hasta.ultimo.seguimiento.fix==0),0,1)
+summary(chuvi$retirado)
+```
+
+```{r}
+survobj <- with(chuvi, Surv(Tiempo.desde.implante,retirado))
+```
+
+
+```{r}
+fit0 <- survfit(survobj~1, data=chuvi)
+summary(fit0)
+plot(fit0, xlab="Survival Time in Days", 
+  	ylab="% Surviving", yscale=100,
+   main="Survival Distribution (Overall)") 
+```
+
+```{r}
+fit1 <- survfit(survobj~Camaras,data=chuvi)
+```
+
+
+```{r}
+plot(fit1, xlab="Survival Time in Days", 
+  ylab="% Surviving", yscale=100, col=c("red","blue","green"),
+  main="Survival Distributions by Camera") 
+  legend("topright", title="Camara", c("?", "?","?"),
+  fill=c("red", "blue","green"))
+```
+
+
+```{r}
+Mod <- coxph(survobj~Voltaje.bateria,data=chuvi)
+Mod
+```
+
+```{r}
+chuvi$pred = predict(Mod, chuvi, type="expected")
+```
+
