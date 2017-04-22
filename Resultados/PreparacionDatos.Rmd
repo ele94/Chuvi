@@ -121,7 +121,7 @@ chuvi$Supervivencia.factor.fix = as.factor(chuvi$Supervivencia.factor.fix)
 
 ```{r cache=TRUE}
 #3 meses
-chuvi$x3M.fix = as.character(chuvi$x3M.factor)
+chuvi$x3M.fix = as.character(chuvi$x3M)
 
 Sup.3.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 89, FALSE, TRUE)
 
@@ -129,7 +129,7 @@ chuvi$x3M.fix = ifelse(is.na(chuvi$x3M.fix),Sup.3.M,chuvi$x3M.fix)
 chuvi$x3M.fix = as.factor(chuvi$x3M.fix)
 
 #6 meses
-chuvi$x6M.fix = as.character(chuvi$x6M.factor)
+chuvi$x6M.fix = as.character(chuvi$x6M)
 
 Sup.6.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 179, FALSE, TRUE)
 
@@ -137,7 +137,7 @@ chuvi$x6M.fix = ifelse(is.na(chuvi$x6M.fix),Sup.6.M,chuvi$x6M.fix)
 chuvi$x6M.fix = as.factor(chuvi$x6M.fix)
 
 #12 meses
-chuvi$x12M.fix = as.character(chuvi$x12M.factor)
+chuvi$x12M.fix = as.character(chuvi$x12M)
 
 Sup.12.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 359, FALSE, TRUE)
 
@@ -145,13 +145,29 @@ chuvi$x12M.fix = ifelse(is.na(chuvi$x12M.fix),Sup.12.M,chuvi$x12M.fix)
 chuvi$x12M.fix = as.factor(chuvi$x12M.fix)
 
 #18 meses
-chuvi$x18M.fix = as.character(chuvi$x18M.factor)
+chuvi$x18M.fix = as.character(chuvi$x18M)
 
 Sup.18.M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento.fix < 539, FALSE, TRUE)
 
 chuvi$x18M.fix = ifelse(is.na(chuvi$x18M.fix),Sup.18.M,chuvi$x18M.fix)
 chuvi$x18M.fix = as.factor(chuvi$x18M.fix)
 ```
+
+Fecha retirada
+
+```{r}
+
+chuvi$Fecha.ultimo.seguimiento.fix = ifelse(is.na(chuvi$Fecha.ultimo.seguimiento),as.character(as.Date(chuvi$Fecha) + chuvi$Tiempo.hasta.ultimo.seguimiento.fix),as.character(chuvi$Fecha.ultimo.seguimiento))
+
+chuvi$Fecha.ultimo.seguimiento.fix = as.Date(chuvi$Fecha.ultimo.seguimiento.fix)
+summary(chuvi$Fecha.ultimo.seguimiento.fix)
+```
+
+```{r}
+library(xlsx)
+write.xlsx(chuvi, "C:/Users/Elena/Dropbox/Clase/LPRO/Chuvi/Datos/chuvi.xlsx")
+```
+
 
 ##Nuevo sampling
 

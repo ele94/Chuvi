@@ -35,7 +35,7 @@ fit1 <- survfit(survobj~Camaras,data=chuvi)
 plot(fit1, xlab="Survival Time in Days", 
   ylab="% Surviving", yscale=100, col=c("red","blue","green"),
   main="Survival Distributions by Camera") 
-  legend("topright", title="Camara", c("?", "?","?"),
+  legend("topright", title="Camara", c("1", "2","3"),
   fill=c("red", "blue","green"))
 ```
 

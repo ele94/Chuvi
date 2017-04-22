@@ -1,0 +1,235 @@
+---
+title: "Pasos del modelado"
+output: html_notebook
+---
+
+En esta libreta explicamos los pasos para coger los datos de la base de datos, crear las variables que necesitamos, transformar e inferir los datos, crear y utilizar el modelo. Explicaremos para cada paso qué se tiene que hacer varias veces, y qué no.
+
+##Variables
+
+Las variables globales que se van a utilizar van a ser las siguientes:
+- chuvi: dataframe global donde se guardan todos los datos, tanto originales como transformados
+- traningSet: dataframe global donde se guardan los datos que forman parte del training set
+- testSet: dataframe global donde se guardan los datos que forman parte del test set
+- modelo3:
+- modelo6:
+- modelo12:
+- modelo 18: 
+
+
+##Librerías
+
+Las librerías que necesitamos son las siguientes:
+- ggplot2: para pintar gráficas
+
+###Cómo instalar las librerías
+
+Para instalar las librerías solo tenemos que ejecutar el siguiente código una sola vez en la consola de R
+
+```{r}
+#intsall.packages("ggplot2")
+```
+
+###Cómo usar las librerías
+
+Para poder usar las librerías solo tenemos que poner este código al principio de nuestro programa
+
+```{r}
+library(ggplot2)
+library(shiny)
+library(shinyjs)
+library(RMySQL)
+```
+
+
+##Modelado
+
+Esta parte de código se realizará una vez al inicio del programa y las consiguientes veces cada vez que se quiera recalcular el modelo.
+
+###Lectura de los datos de la base de datos
+
+Leemos los datos de la base de datos y los recogemos en la variable chuvi.
+
+Para ello, primero creamos una función que haga eso
+```{r}
+options(mysql = list(
+  "host" = "127.0.0.1",
+  "port" = 3306,
+  "user" = "root",
+  "password" = "diao94chan" #Poner la contraseña del root correspondiente
+))
+
+databaseName <- "lpro2"
+table <- "cita"
+table_pacientes <- "pacientes"
+ID_table <- "referencias"
+ID_table_pacientes <- "SN"
+
+#Función que carga los datos de las dos tablas conjuntadas
+loadDataChuvi <- function() {
+  
+  db <- dbConnect(MySQL(), dbname = databaseName, host = options()$mysql$host, 
+                  port = options()$mysql$port, user = options()$mysql$user, 
+                  password = options()$mysql$password)
+  
+  query <- sprintf("SELECT * FROM %s, %s WHERE %s.%s = %s.%s", table,table_pacientes,table,ID_table,table_pacientes,ID_table_pacientes)
+  
+  data <- dbGetQuery(db, query)
+  dbDisconnect(db)
+  data
+}
+
+```
+
+Y después llamamos a la función, guardando el resultado en la variable chuvi
+```{r}
+chuvi = loadDataChuvi()
+summary(chuvi)
+```
+
+
+
+Cambiamos los nombres de las columnas para su comodidad de uso.
+
+"Camaras","Modelo","Fecha.implante","Tiempo.inicio.ultima.cita","Tiempo.inicio.ultimo.seguimiento", "Fecha","Fecha.cita.anterior","Fecha.ultima.cita.registrada","Fecha.ultimo.seguimiento","Tiempo.desde.implante","Tiempo.desde.cita.anterior","Tiempo.hasta.ultima.cita","Tiempo.hasta.ultimo.seguimiento","ERI.alcanzado","Voltaje.bateria","x18M","x12M","x6M", "x3M","Supervivencia", "x18M (ERI)","x12M (ERI)","x6M (ERI)","x3M (ERI)","STIMA","STIMVD","STIMVI","Choque","ATP","Frecuencia.min","R","VA","MSA","VD","MSVD","VI","MSVI","Episodios"
+
+```{r}
+colnames(chuvi) = c("ID.cita","ref","Fecha","Voltaje.bateria","STIMA","STIMVD","STIMVI","Choque","ATP","Frecuencia.min","R","VA","MSA","VD","MSVD","VI","MSVI","Episodios","nuevo","gp","Fecha.ultimo.seguimiento.fix","SN","Camaras","Fecha.implante","Fecha.ultimo.seguimiento")
+
+summary(chuvi)
+```
+
+####Corrección de datos
+
+Cambiamos el formato de algunos datos para poder trabajar con ellos
+
+```{r}
+chuvi$Fecha = as.Date(chuvi$Fecha)
+chuvi$Fecha.implante = as.Date(chuvi$Fecha.implante)
+chuvi$Fecha.ultimo.seguimiento = as.Date(chuvi$Fecha.ultimo.seguimiento)
+chuvi$Fecha.ultimo.seguimiento.fix = as.Date(chuvi$Fecha.ultimo.seguimiento.fix)
+```
+
+
+Corregimos los NULLs de las variables que puedan tenerlos, sustituyéndolos por sus valores correspondientes. En realidad este paso no debería ser necesario porque no usamos las variables para el modelo pero por si acaso las queremos usar para algo, las corregiremos. 
+
+```{r}
+chuvi$STIMA.fix = ifelse(is.na(chuvi$STIMA),0,chuvi$STIMA)
+chuvi$MSA.fix = ifelse(is.na(chuvi$MSA),0,chuvi$MSA)
+chuvi$VA.fix = ifelse(is.na(chuvi$VA),0,chuvi$VA)
+chuvi$STIMVD.fix = ifelse(is.na(chuvi$STIMVD),0,chuvi$STIMVD)
+chuvi$MSVD.fix = ifelse(is.na(chuvi$MSVD),0,chuvi$MSVD)
+chuvi$VD.fix = ifelse(is.na(chuvi$VD),0,chuvi$VD)
+chuvi$STIMVI.fix = ifelse(is.na(chuvi$STIMVI),0,chuvi$STIMVI)
+chuvi$MSVI.fix = ifelse(is.na(chuvi$MSVI),0,chuvi$MSVI)
+chuvi$VI.fix = ifelse(is.na(chuvi$VI),0,chuvi$VI)
+
+chuvi$Choque.fix = ifelse(is.na(chuvi$Choque),0,chuvi$Choque)
+chuvi$ATP.fix = ifelse(is.na(chuvi$ATP),0,chuvi$ATP)
+
+summary(chuvi)
+```
+
+###Creación de campos derivados
+
+Creamos los campos derivados que usamos para nuestro modelo
+
+Tiempo entre inicio y último seguimiento en días:
+
+```{r}
+chuvi$Tiempo.inicio.ultimo.seguimiento <- chuvi$Fecha.ultimo.seguimiento.fix - chuvi$Fecha.implante
+chuvi$Tiempo.inicio.ultimo.seguimiento = as.numeric(chuvi$Tiempo.inicio.ultimo.seguimiento)
+
+summary(chuvi$Tiempo.inicio.ultimo.seguimiento)
+```
+
+Tiempo hasta último seguimiento en días:
+
+```{r}
+chuvi$Tiempo.hasta.ultimo.seguimiento = chuvi$Fecha.ultimo.seguimiento.fix - chuvi$Fecha
+chuvi$Tiempo.hasta.ultimo.seguimiento = as.numeric(chuvi$Tiempo.hasta.ultimo.seguimiento)
+
+summary(chuvi$Tiempo.hasta.ultimo.seguimiento)
+```
+
+Meses: si el aparato sobrevive los meses estipulados, se pone a TRUE. Si no sobrevive, se pone a FALSE.
+
+```{r}
+#3 meses
+chuvi$x3M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento < 89, FALSE, TRUE)
+chuvi$x6M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento < 179, FALSE, TRUE)
+chuvi$x12M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento < 359, FALSE, TRUE)
+chuvi$x18M = ifelse(chuvi$Tiempo.hasta.ultimo.seguimiento < 539, FALSE, TRUE)
+
+chuvi$x3M = as.factor(chuvi$x3M)
+chuvi$x6M = as.factor(chuvi$x6M)
+chuvi$x12M = as.factor(chuvi$x12M)
+chuvi$x18M = as.factor(chuvi$x18M)
+
+summary(chuvi)
+
+```
+
+
+##Predicción
+
+
+Esta parte de código se ejecutará cada vez que se realice en el programa una inserción de cita, de modo que se calcularán los porcentajes de supervivencia del aparato del paciente. Los resultados del modelado se guardan en las variables model3, model6, model12 y model18 
+
+###Sampling
+
+Separamos los datos en el test set y el training set.
+
+```{r cache=TRUE}
+#chuvi$gp = runif(dim(chuvi)[1])
+testSet = subset(chuvi, chuvi$gp <= 0.5)
+trainingSet = subset(chuvi, chuvi$gp > 0.5)
+dim(testSet)[1]
+```
+
+```{r cache=TRUE}
+dim(trainingSet)[1]
+```
+
+Creamos los modelos para la predicción a partir del trainingSet
+
+```{r}
+model3 <- glm("x3M~Voltaje.bateria", data=trainingSet, family=binomial(link="logit"))
+model6 <- glm("x6M~Voltaje.bateria", data=trainingSet, family=binomial(link="logit"))
+model12 <- glm("x12M~Voltaje.bateria", data=trainingSet, family=binomial(link="logit"))
+model18 <- glm("x18M~Voltaje.bateria", data=trainingSet, family=binomial(link="logit"))
+
+```
+
+Ahora, para predecir un nuevo dato debemos crear un data frame como el siguiente, donde el valor de la batería es un mero ejemplo:
+
+```{r}
+newdata = data.frame(Voltaje.bateria = 4.8)
+```
+
+Y predecir los porcentajes
+
+```{r}
+pred3 = predict(model3, newdata, type="response")
+pred6 = predict(model6, newdata, type="response")
+pred12 = predict(model12, newdata, type="response")
+pred18 = predict(model18, newdata, type="response")
+```
+
+```{r}
+pred3
+pred6
+pred12
+pred18
+```
+
+
+##Gráficas y otros resultados
+
+En este apartado explicamos todo el código que no es estrictamente necesario para realizar el modelo, pero que puede ser interesante utilizar. 
+
+
+
+
+
+

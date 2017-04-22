@@ -13,10 +13,10 @@ Modelo naive
 ####Fórmula
 
 ```{r}
-programados <- c("Camaras.factor","Frecuencia.min","R")
-temporales <- c("Tiempo.desde.implante", "Voltaje.bateria",
-"STIMA.fix","STIMVD.fix","STIMVI.fix","Choque.fix","ATP.fix","Episodios.factor")
-y <- "x18M.fix"
+programados <- c("Camaras","Frecuencia.min","R")
+temporales <- c("Voltaje.bateria",
+"STIMA.fix","STIMVD.fix","STIMVI.fix","Choque.fix","ATP.fix","Episodios")
+y <- "x18M"
 x <- c(programados,
 temporales)
 fmla <- paste(y, paste(x, collapse="+"), sep="~")
@@ -41,7 +41,7 @@ Y miramos los resultados.
 
 ```{r}
 library(ggplot2)
-ggplot(trainingSet, aes(x=pred, color=x18M.fix, linetype=x18M.fix)) +
+ggplot(trainingSet, aes(x=pred, color=x18M, linetype=x18M)) +
 geom_density()
 ```
 
@@ -55,7 +55,7 @@ library(ROCR)
 
 ```{r}
 library(grid)
-predObj <- prediction(trainingSet$pred, trainingSet$x18M.fix)
+predObj <- prediction(trainingSet$pred, trainingSet$x18M)
 precObj <- performance(predObj, measure="prec")
 recObj <- performance(predObj, measure="rec")
 precision <- (precObj@y.values)[[1]]
@@ -73,7 +73,7 @@ print(plist[[i]], vp=vplayout(i,1))
 }
 }
 pnull <-
-mean(as.numeric(trainingSet$x18M.fix))
+mean(as.numeric(trainingSet$x18M))
 p1 <- ggplot(rocFrame, aes(x=threshold)) +
 geom_line(aes(y=precision/pnull)) +
 coord_cartesian(xlim = c(0,1), ylim=c(0,1) )
@@ -90,7 +90,7 @@ Para poder evaluar tenemos que elegir un treshold. Escogeremos en ambos un tresh
 ####Tabla de verdad
 
 ```{r}
-ctab.test <- table(pred=testSet$pred>0.60, x18M.fix=testSet$x18M.fix)
+ctab.test <- table(pred=testSet$pred>0.60, x18M=testSet$x18M)
 ctab.test
 ```
 
@@ -115,7 +115,7 @@ El recall también es bastante alto.
 ####Enrich
 
 ```{r}
-enrich <- precision/mean(as.numeric(testSet$x18M.fix))
+enrich <- precision/mean(as.numeric(testSet$x18M))
 enrich
 ```
 
@@ -288,7 +288,7 @@ Modelado solo con el voltaje de la batería
 
 ```{r}
 temporales <- c("Voltaje.bateria")
-y <- "x18M.fix"
+y <- "x18M"
 x <- c(temporales)
 fmla <- paste(y, paste(x, collapse="+"), sep="~")
 print(fmla)
@@ -313,7 +313,7 @@ testSet$pred <- predict(model, newdata=testSet, type="response")
 
 ```{r}
 library(ggplot2)
-ggplot(trainingSet, aes(x=pred, color=x18M.fix, linetype=x18M.fix)) +
+ggplot(trainingSet, aes(x=pred, color=x18M, linetype=x18M)) +
 geom_density()
 ```
 
@@ -321,7 +321,7 @@ La gráfica es de mejor calidad que la que obtuvimos en la versión anterior. Es, 
 
 ```{r}
 library(grid)
-predObj <- prediction(trainingSet$pred, trainingSet$x18M.fix)
+predObj <- prediction(trainingSet$pred, trainingSet$x18M)
 precObj <- performance(predObj, measure="prec")
 recObj <- performance(predObj, measure="rec")
 precision <- (precObj@y.values)[[1]]
@@ -339,7 +339,7 @@ print(plist[[i]], vp=vplayout(i,1))
 }
 }
 pnull <-
-mean(as.numeric(trainingSet$x18M.fix))
+mean(as.numeric(trainingSet$x18M))
 p1 <- ggplot(rocFrame, aes(x=threshold)) +
 geom_line(aes(y=precision/pnull)) +
 coord_cartesian(xlim = c(0,1), ylim=c(0,1) )
@@ -357,7 +357,7 @@ nplot(list(p1, p2))
 Escogemos un treshold de 0.30.
 
 ```{r}
-ctab.test <- table(pred=testSet$pred>0.75, x18M.fix=testSet$x18M.fix)
+ctab.test <- table(pred=testSet$pred>0.60, x18M.fix=testSet$x18M)
 ctab.test
 ```
 
@@ -378,7 +378,7 @@ recall
 ####Enrich
 
 ```{r}
-enrich <- precision/mean(as.numeric(testSet$x18M.fix))
+enrich <- precision/mean(as.numeric(testSet$x18M))
 enrich
 ```
 
